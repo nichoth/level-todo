@@ -22,7 +22,7 @@
     "prepublishOnly": "npm run build"
   },
   "dependencies": {
-    "@nichoth/components": "^0.16.5",
+    "@nichoth/components": "^0.16.7",
     "@nichoth/routes": "^4.0.7",
     "@preact/signals": "^1.2.3",
     "@types/events": "^3.0.3",

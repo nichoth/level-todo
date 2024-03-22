@@ -1,7 +1,13 @@
 body {
+    font-family: sans-serif;
+
     & div {
         margin-bottom: 1rem;
     }
+}
+
+form {
+    margin-bottom: 2rem;
 }
 
 nav {

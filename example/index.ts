@@ -4,10 +4,14 @@ import {
     Primary as ButtonOutlinePrimary,
     ButtonOutline
 } from '@nichoth/components/htm/button-outline'
+import { Button } from '@nichoth/components/htm/button'
+import { TextInput } from '@nichoth/components/htm/text-input'
 import { createDebug } from '@nichoth/debug'
 import { State } from './state.js'
 import Router from './routes/index.js'
 import '@nichoth/components/button-outline.css'
+import '@nichoth/components/button.css'
+import '@nichoth/components/text-input.css'
 import './style.css'
 
 const router = Router()
@@ -37,17 +41,20 @@ export function Example () {
     }
 
     return html`<div class="content">
-        <h1>hello</h1>
+        <h1>A demonstation of levelDB</h1>
 
-        <header>
-            <nav>
-                <ul class="nav">
-                    <li class="${getClass('/aaa')}"><a href="/aaa">aaa</a></li>
-                    <li class="${getClass('/bbb')}"><a href="/bbb">bbb</a></li>
-                    <li class="${getClass('/ccc')}"><a href="/ccc">ccc</a></li>
-                </ul>
-            </nav>
-        </header>
+        <h2>Create a new user</h2>
+
+        <p>
+
+        </p>
+
+        <form>
+            <${TextInput} displayName=${'new user name'} />
+            <${Button} isSpinning=${false} type=${'submit'}>Submit<//>
+        </form>
+
+        <hr />
 
         <div>
             <div>count: ${state.count.value}</div>
@@ -68,14 +75,6 @@ export function Example () {
 
         <${ChildNode} />
     </div>`
-}
-
-function getClass (href) {
-    return isActive(href) ? 'active' : ''
-}
-
-function isActive (href) {
-    return location.pathname === href
 }
 
 render(html`<${Example} />`, document.getElementById('root')!)
