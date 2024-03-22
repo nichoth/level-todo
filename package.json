@@ -8,6 +8,7 @@
   ],
   "scripts": {
     "lint": "eslint \"./**/*.{ts,js}\"",
+    "bundle-level": "",
     "build-tests": "esbuild test/index.ts --target=es2020 --bundle --keep-names > test/test-bundle.js",
     "test": "npm run lint && npm run build && npm run build-tests && npm run test-tape-run",
     "test-tape-run": "cat test/index.html | tape-run --input=html --static=test | tap-arc",
@@ -24,7 +25,9 @@
     "@nichoth/components": "^0.16.5",
     "@nichoth/routes": "^4.0.7",
     "@preact/signals": "^1.2.3",
+    "@types/events": "^3.0.3",
     "browser-level": "^1.0.1",
+    "events": "^3.3.0",
     "htm": "^3.1.1",
     "preact": "^10.20.0",
     "route-event": "^4.2.20"
