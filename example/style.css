@@ -1,0 +1,35 @@
+body {
+    & div {
+        margin-bottom: 1rem;
+    }
+}
+
+nav {
+    & ul {
+        list-style: none;
+        padding: 0;
+    }
+
+    & li {
+        padding: 0 1rem;
+        margin: 0.5rem 0;
+
+        &.active {
+            background-color: pink;
+            width: fit-content;
+        }
+    }
+}
+
+.count-controls {
+    list-style: none;
+    padding: 0;
+
+    & li {
+        margin-bottom: 1rem;
+    }
+}
+
+button {
+    cursor: pointer;
+}
