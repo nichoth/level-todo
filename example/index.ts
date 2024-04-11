@@ -1,10 +1,10 @@
 import { html } from 'htm/preact'
-import { useSignal } from '@preact/signals'
+// import { useSignal } from '@preact/signals'
 import { render } from 'preact'
-import {
-    Primary as ButtonOutlinePrimary,
-    ButtonOutline
-} from '@nichoth/components/htm/button-outline'
+// import {
+//     Primary as ButtonOutlinePrimary,
+//     ButtonOutline
+// } from '@nichoth/components/htm/button-outline'
 import { Button } from '@nichoth/components/htm/button'
 import { TextInput } from '@nichoth/components/htm/text-input'
 import { createDebug } from '@nichoth/debug'
@@ -31,80 +31,42 @@ export function Example () {
 
     const ChildNode = match.action(match, state.route)
 
-    function plus (ev) {
-        ev.preventDefault()
-        State.Increase(state)
-    }
-
-    function minus (ev) {
-        ev.preventDefault()
-        State.Decrease(state)
-    }
-
     function handleSubmit (ev:SubmitEvent) {
         ev.preventDefault()
         const els = (ev.target! as HTMLFormElement).elements
         // @ts-expect-error broken upstream. See https://github.com/microsoft/TypeScript/issues/39003
         const name = els.name.value
-        const userId = els['user-id'].value
         debug('got name', name)
-        State.Put(state, { name, userId })
+        State.Create(state, { name })
     }
 
     return html`<div class="content">
         <h1>A demonstation of levelDB</h1>
 
-        <h2>Create a new user</h2>
-
-        <form onSubmit=${handleSubmit}>
-            <${TextInput}
-                name=${'name'}
-                displayName=${'new user name'}
-                require=${true}
-            />
-            <${TextInput}
-                name=${'user-id'}
-                displayName=${'User ID'}
-                required=${true}
-            />
-            <${Button} isSpinning=${false} type=${'submit'}>Submit<//>
-        </form>
-
-        <hr />
-
         <div>
             <h2>DB contents</h2>
             <ul>
-                ${state.peopleSignal.value.map(([key, value]) => {
+                ${state.todosSignal.value.map(([key, value]) => {
                     debug('person', value)
                     return html`<li>
                         ${value.name}, key: ${key}
                     </li>`
                 })}
             </ul>
-
-            <${Button}
-                isSpinning=${useSignal(false)}
-                onClick=${State.refreshPeople.bind(null, state)}
-            >Refresh people list<//>
         </div>
 
-        <div>
-            <div>count: ${state.count}</div>
+        <h2>Create a new thing to do</h2>
 
-            <ul class="count-controls">
-                <li>
-                    <${ButtonOutlinePrimary} onClick=${plus}>
-                        plus
-                    </${ButtonOutline}>
-                </li>
-                <li>
-                    <${ButtonOutline} onClick=${minus}>
-                        minus
-                    </${ButtonOutline}>
-                </li>
-            </ul>
-        </div>
+        <form onSubmit=${handleSubmit}>
+            <${TextInput}
+                name=${'name'}
+                displayName=${'something to do'}
+                required=${true}
+            />
+            <${Button} isSpinning=${false} type=${'submit'}>Submit<//>
+        </form>
+
+        <hr />
 
         <${ChildNode} />
     </div>`

@@ -31,6 +31,7 @@
     "events": "^3.3.0",
     "htm": "^3.1.1",
     "level-web-stream": "^1.1.0",
+    "monotonic-timestamp": "^0.0.9",
     "preact": "^10.20.0",
     "route-event": "^4.2.20"
   },
