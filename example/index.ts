@@ -1,4 +1,5 @@
 import { html } from 'htm/preact'
+import { useSignal } from '@preact/signals'
 import { render } from 'preact'
 import {
     Primary as ButtonOutlinePrimary,
@@ -15,7 +16,7 @@ import '@nichoth/components/text-input.css'
 import './style.css'
 
 const router = Router()
-const state = State()
+const state = await State()
 const debug = createDebug()
 
 export function Example () {
@@ -40,24 +41,56 @@ export function Example () {
         State.Decrease(state)
     }
 
+    function handleSubmit (ev:SubmitEvent) {
+        ev.preventDefault()
+        const els = (ev.target! as HTMLFormElement).elements
+        // @ts-expect-error broken upstream. See https://github.com/microsoft/TypeScript/issues/39003
+        const name = els.name.value
+        const userId = els['user-id'].value
+        debug('got name', name)
+        State.Put(state, { name, userId })
+    }
+
     return html`<div class="content">
         <h1>A demonstation of levelDB</h1>
 
         <h2>Create a new user</h2>
 
-        <p>
-
-        </p>
-
-        <form>
-            <${TextInput} displayName=${'new user name'} />
+        <form onSubmit=${handleSubmit}>
+            <${TextInput}
+                name=${'name'}
+                displayName=${'new user name'}
+                require=${true}
+            />
+            <${TextInput}
+                name=${'user-id'}
+                displayName=${'User ID'}
+                required=${true}
+            />
             <${Button} isSpinning=${false} type=${'submit'}>Submit<//>
         </form>
 
         <hr />
 
         <div>
-            <div>count: ${state.count.value}</div>
+            <h2>DB contents</h2>
+            <ul>
+                ${state.peopleSignal.value.map(([key, value]) => {
+                    debug('person', value)
+                    return html`<li>
+                        ${value.name}, key: ${key}
+                    </li>`
+                })}
+            </ul>
+
+            <${Button}
+                isSpinning=${useSignal(false)}
+                onClick=${State.refreshPeople.bind(null, state)}
+            >Refresh people list<//>
+        </div>
+
+        <div>
+            <div>count: ${state.count}</div>
 
             <ul class="count-controls">
                 <li>

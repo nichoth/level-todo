@@ -39,3 +39,8 @@ nav {
 button {
     cursor: pointer;
 }
+
+.content {
+    max-width: 40rem;
+    margin-inline: auto;
+}

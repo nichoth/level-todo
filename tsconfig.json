@@ -5,6 +5,7 @@
     "target": "ES2022",
     "moduleResolution": "nodenext",
     "esModuleInterop": false,
+    "types": ["vite/client"],
     "lib": ["ES2022", "DOM", "WebWorker"],
     "allowJs": false,
     "skipLibCheck": true,
