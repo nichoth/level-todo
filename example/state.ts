@@ -155,6 +155,8 @@ State.Complete = async function Complete (
     const doc = await state._todos.get(parseInt(id));
     (doc as Todo).completed = true
     await state._todos.put(parseInt(id), doc)
+    await State.refreshState(state)
+
     // then update state
     // const list = state.todosSignal.value
     // list[list.indexOf(todo!)] = [parseInt(id), { ...todo, completed: false }]
@@ -171,7 +173,10 @@ State.Uncomplete = async function Uncomplete (
     const oldDoc = state.todosSignal.value.find(([key]) => {
         return key === id
     })
-    await state._todos.put(id, { ...oldDoc, completed: false })
+    if (!oldDoc) throw new Error('not old doc')
+
+    await state._todos.put(id, { ...oldDoc[1], completed: false })
+    await State.refreshState(state)
 }
 
 if (import.meta.env.DEV) {

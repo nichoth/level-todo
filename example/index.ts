@@ -56,39 +56,32 @@ export function Example () {
         <h1>A demonstation of levelDB</h1>
 
         <div>
-            <h2>DB contents</h2>
-            <ul>
-                ${state.todosSignal.value.map(([key, value]) => {
-                    return html`<li>
-                        ${value.name}, key: ${key}
-                    </li>`
-                })}
-            </ul>
+            <h2>The List</h2>
+            ${Object.keys(state.todosSignal.value).length ?
+                html`<ul class="todo-list">
+                    ${state.todosSignal.value.map(([key, todo]) => {
+                        debug('a todo item', todo)
+                        const classes = todo.completed ? 'todo completed' : 'todo'
+
+                        return html`<li key=${key} class=${classes}>
+                            <input class="toggle" checked=${todo.completed}
+                                type="checkbox"
+                                name="done-status"
+                                id="${key}"
+                                data-id=${key}
+                                onChange=${check}
+                            />
+
+                            <label>
+                                ${todo.name}
+                            </label>
+                        </li>`
+                    })}
+                </ul>` :
+                html`<em class="empty-list">none</em>`
+            }
         </div>
 
-        ${Object.keys(state.todosSignal.value).length ?
-            html`<ul class="todo-list">
-                ${state.todosSignal.value.map(([key, todo]) => {
-                    debug('a todo item', todo)
-                    const classes = todo.completed ? 'todo completed' : 'todo'
-
-                    return html`<li key=${key} class=${classes}>
-                        <input class="toggle" checked=${todo.completed}
-                            type="checkbox"
-                            name="done-status"
-                            id="${key}"
-                            data-id=${key}
-                            onChange=${check}
-                        />
-
-                        <label>
-                            ${todo.name}
-                        </label>
-                    </li>`
-                })}
-            </ul>` :
-            html`<em class="empty-list">none</em>`
-        }
 
         <h2>Create a new thing to do</h2>
 
