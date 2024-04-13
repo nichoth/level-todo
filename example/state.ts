@@ -6,18 +6,23 @@ import ts from 'monotonic-timestamp'
 import Debug from '@nichoth/debug'
 const debug = Debug()
 
+export type Todo = {
+    completed:boolean
+    name:string
+}
+
 export async function State ():Promise<{
     route:Signal<string>;
-    todosSignal:Signal<[string, { name }][]>;
+    todosSignal:Signal<[number, { name:string, completed:boolean }][]>;
     _todos;
     _nameIndex;
-    _db:InstanceType<typeof BrowserLevel<number|string, number|object>>;
+    _db:InstanceType<typeof BrowserLevel<number|string, number|Todo>>;
     _setRoute:(path:string)=>void;
 }> {  // eslint-disable-line indent
     const onRoute = Route()
 
     // Create a database called 'example'
-    const db = new BrowserLevel<number|string, number|object>('example123', {
+    const db = new BrowserLevel<number|string, number|Todo>('example123', {
         valueEncoding: 'json',
         keyEncoding: charwise
     })
@@ -33,7 +38,7 @@ export async function State ():Promise<{
         keyEncoding: charwise
     })
     const nameIndex = db.sublevel<charwise, 'utf8'>('names', {
-        valueEncoding: 'utf8',
+        // valueEncoding: charwise,
         keyEncoding: charwise
     })
 
@@ -49,8 +54,7 @@ export async function State ():Promise<{
         _db: db,
         _todos: todos,
         _nameIndex: nameIndex,
-        count: signal<number>(await db.get('count') as number),
-        todosSignal: signal<[string, { name:string }][]>([]),
+        todosSignal: signal<[number, Todo][]>([]),
         route: signal<string>(location.pathname + location.search)
     }
 
@@ -86,7 +90,7 @@ export async function State ():Promise<{
 
 State.GetDB = function (
     state:Awaited<ReturnType<typeof State>>
-):InstanceType<typeof BrowserLevel<number|string, number|object>> {
+):InstanceType<typeof BrowserLevel<number|string, number|Todo>> {
     return state._db
 }
 
@@ -136,9 +140,38 @@ State.GetByName = async function GetByName (
     name:string
 ) {
     const id = await state._nameIndex.get(name)
-    const record = await state._todos.get(id)
-    debug('got person record', record)
+    debug('got id', id)
+    const record = await state._todos.get(parseInt(id))
+    debug('got todo record', record)
     return record
+}
+
+State.Complete = async function Complete (
+    state:Awaited<ReturnType<typeof State>>,
+    id:string
+) {
+    // first update DB
+    debug('marking as complete', id)
+    const doc = await state._todos.get(parseInt(id));
+    (doc as Todo).completed = true
+    await state._todos.put(parseInt(id), doc)
+    // then update state
+    // const list = state.todosSignal.value
+    // list[list.indexOf(todo!)] = [parseInt(id), { ...todo, completed: false }]
+    // const todo = state.todosSignal.value.find(([key]) => {
+    //     return key === parseInt(id)
+    // })
+}
+
+State.Uncomplete = async function Uncomplete (
+    state:Awaited<ReturnType<typeof State>>,
+    _id:string
+) {
+    const id = parseInt(_id)
+    const oldDoc = state.todosSignal.value.find(([key]) => {
+        return key === id
+    })
+    await state._todos.put(id, { ...oldDoc, completed: false })
 }
 
 if (import.meta.env.DEV) {
