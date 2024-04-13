@@ -3,7 +3,7 @@
 Lets make a todo list app. People seem to like those.
 
 We want to be able to save a list and then see it again later; it should be
-*persistent*. We don't really need this todo list to be visible to the entire
+*persistent*. We don't really need this list to be visible to the entire
 world, so there is no need to make a *website*. We can just use our device's
 local storage.
 
@@ -11,7 +11,25 @@ local storage.
 
 That was easy. Now now we have a persistent list. We are using [IndexedDB](https://developer.mozilla.org/en-US/docs/Web/API/IndexedDB_API/Using_IndexedDB) with the [levelDB](https://github.com/Level/browser-level) API.
 
-## level DB
+Since we are the only person who cares about what's on it, there is no need to save this to a server. It can just stay in our own web browser. But -- we have multiple devices. Working on multiple devices is now "table stakes" for any app. We have a computer and phone at minimum. We want the same data to be visible on both.
+
+...That means we are not local anymore? If we use data on more than one device, then it needs a way to travel from one device to the other.
+
+And what about backup? We want this data to continue existing even in the event that we lose our device(s). Hmm... it's not so simple anymore. We need multi-device sync, and backup copies.
+
+That brings privacy into the picture. We don't want anyone else to be able to our todo list, because no one else needs to read it.
+
+There are varying shades of privacy. This could be private because we sign in to a server, and the server only serves us the data. But that means that the server could still read the list.
+
+Why would that matter? At the most innocuous, this server would read our lists, and use that info to sell advertisements to us. Maybe that's not so bad. In the less innocuous scenario, this server operator might read a todo item about our reproductive rights, or soomething political, for example, and now we are in a morass of legal issues.
+
+Somehow our simple todo list has turned into an investigation of personal privacy on the internet. That's what we'll look at. How do we get synchronization between multiple devices while still keeping things private? We want ✨ *E2E encryption* ✨.
+
+
+-----------------------------------------------------------------------
+
+
+## level DB notes
 
 ### secondary index
 
