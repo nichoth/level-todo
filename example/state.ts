@@ -37,15 +37,15 @@ export async function State ():Promise<{
         valueEncoding: 'json',
         keyEncoding: charwise
     })
+
     const nameIndex = db.sublevel<charwise, 'utf8'>('names', {
-        // valueEncoding: charwise,
         keyEncoding: charwise
     })
 
     /**
      * Example of iterator that gets correct (object) values
      * ```js
-     * await db.sublevel('people').iterator({ valueEncoding: 'json' }).all()
+     * await db.sublevel('todos').iterator({ valueEncoding: 'json' }).all()
      * ```
      */
 
@@ -79,7 +79,7 @@ export async function State ():Promise<{
      */
     onRoute((path:string) => {
         // for github pages
-        const newPath = path.replace('/level-adventure/', '/')
+        const newPath = path.replace('/level-todo/', '/')
         state.route.value = newPath
     })
 
@@ -132,6 +132,8 @@ State.refreshState = async function (
         valueEncoding: 'json',
         keyEncoding: charwise
     }).all()
+
+    debug('list of todos', list)
     state.todosSignal.value = list
 }
 

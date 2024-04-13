@@ -4,27 +4,16 @@ import { Button } from '@nichoth/components/htm/button'
 import { TextInput } from '@nichoth/components/htm/text-input'
 import { createDebug } from '@nichoth/debug'
 import { State } from './state.js'
-import Router from './routes/index.js'
 import '@nichoth/components/button-outline.css'
 import '@nichoth/components/button.css'
 import '@nichoth/components/text-input.css'
 import './style.css'
 
-const router = Router()
 const state = await State()
 const debug = createDebug()
 
 export function Example () {
     debug('rendering example...')
-    const match = router.match(state.route.value)
-
-    if (!match) {
-        return html`<div class="404">
-            <h1>404</h1>
-        </div>`
-    }
-
-    const ChildNode = match.action(match, state.route)
 
     function check (ev) {
         const el = ev.target
@@ -87,10 +76,6 @@ export function Example () {
             />
             <${Button} isSpinning=${false} type=${'submit'}>Submit<//>
         </form>
-
-        <hr />
-
-        <${ChildNode} />
     </div>`
 }
 

@@ -8,6 +8,8 @@ body {
 
 form {
     margin-bottom: 2rem;
+    border: 1px solid;
+    padding: 1rem;
 }
 
 nav {
