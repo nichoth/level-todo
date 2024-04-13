@@ -1,10 +1,5 @@
 import { html } from 'htm/preact'
-// import { useSignal } from '@preact/signals'
 import { render } from 'preact'
-// import {
-//     Primary as ButtonOutlinePrimary,
-//     ButtonOutline
-// } from '@nichoth/components/htm/button-outline'
 import { Button } from '@nichoth/components/htm/button'
 import { TextInput } from '@nichoth/components/htm/text-input'
 import { createDebug } from '@nichoth/debug'
@@ -39,7 +34,7 @@ export function Example () {
             return State.Complete(state, id)
         }
 
-        // is not complete
+        // not complete
         State.Uncomplete(state, id)
     }
 
@@ -60,7 +55,6 @@ export function Example () {
             ${Object.keys(state.todosSignal.value).length ?
                 html`<ul class="todo-list">
                     ${state.todosSignal.value.map(([key, todo]) => {
-                        debug('a todo item', todo)
                         const classes = todo.completed ? 'todo completed' : 'todo'
 
                         return html`<li key=${key} class=${classes}>
