@@ -29,7 +29,6 @@ export async function State ():Promise<{
 
     // Create a database called 'example123'
     const db = new BrowserLevel<charwise, number|Todo>('example123', {
-        // valueEncoding: 'json',
         keyEncoding: charwise,
         valueEncoding: 'json'
     })
