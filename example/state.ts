@@ -11,20 +11,27 @@ export type Todo = {
     name:string
 }
 
+/**
+ * The issue is the encodings are different for each sublevel
+ *
+ * You *can* get all values, including subs, if the encoding is the same
+ */
+
 export async function State ():Promise<{
     route:Signal<string>;
-    todosSignal:Signal<[number, { name:string, completed:boolean }][]>;
+    todosSignal:Signal<[number, Todo][]>;
     _todos;
     _nameIndex;
-    _db:InstanceType<typeof BrowserLevel<number|string, number|Todo>>;
+    _db:InstanceType<typeof BrowserLevel<charwise, number|Todo>>;
     _setRoute:(path:string)=>void;
 }> {  // eslint-disable-line indent
     const onRoute = Route()
 
-    // Create a database called 'example'
-    const db = new BrowserLevel<number|string, number|Todo>('example123', {
-        valueEncoding: 'json',
-        keyEncoding: charwise
+    // Create a database called 'example123'
+    const db = new BrowserLevel<charwise, number|Todo>('example123', {
+        // valueEncoding: 'json',
+        keyEncoding: charwise,
+        valueEncoding: 'json'
     })
 
     // gets us object values
@@ -33,12 +40,13 @@ export async function State ():Promise<{
     // gets us string values
     // await db.sublevel('people').get('123')
 
-    const todos = db.sublevel<charwise, 'json'>('todos', {
+    const todos = db.sublevel('todos', {
         valueEncoding: 'json',
         keyEncoding: charwise
     })
 
-    const nameIndex = db.sublevel<charwise, 'utf8'>('names', {
+    const nameIndex = db.sublevel('names', {
+        valueEncoding: 'json',
         keyEncoding: charwise
     })
 
@@ -84,13 +92,12 @@ export async function State ():Promise<{
     })
 
     State.refreshState(state)
-
     return state
 }
 
 State.GetDB = function (
     state:Awaited<ReturnType<typeof State>>
-):InstanceType<typeof BrowserLevel<number|string, number|Todo>> {
+):InstanceType<typeof BrowserLevel<charwise, number|Todo>> {
     return state._db
 }
 
@@ -109,6 +116,8 @@ State.Create = async function Create (
     const newId = ts()
 
     debug('putting the new thing', name, newId)
+
+    // in here, should stringify & encrypt the value
 
     await state._db.batch([{
         type: 'put',
@@ -129,7 +138,7 @@ State.refreshState = async function (
     state:Awaited<ReturnType<typeof State>>
 ):Promise<void> {
     const list = await state._todos.iterator({
-        valueEncoding: 'json',
+        // valueEncoding: 'json',
         keyEncoding: charwise
     }).all()
 
@@ -184,4 +193,6 @@ State.Uncomplete = async function Uncomplete (
 if (import.meta.env.DEV) {
     // @ts-expect-error DEV env
     window.State = State
+    // @ts-expect-error DEV env
+    window.BrowserLevel = BrowserLevel
 }

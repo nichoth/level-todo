@@ -27,13 +27,15 @@ export function Example () {
         State.Uncomplete(state, id)
     }
 
-    function handleSubmit (ev:SubmitEvent) {
+    async function handleSubmit (ev:SubmitEvent) {
         ev.preventDefault()
         const els = (ev.target! as HTMLFormElement).elements
         // @ts-expect-error broken upstream. See https://github.com/microsoft/TypeScript/issues/39003
         const name = els.name.value
         debug('got name', name)
-        State.Create(state, { name })
+        await State.Create(state, { name })
+        // @ts-expect-error broken upstream. See https://github.com/microsoft/TypeScript/issues/39003
+        els.name.value = ''
     }
 
     return html`<div class="content">
