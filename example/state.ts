@@ -1,10 +1,15 @@
 import { Signal, signal } from '@preact/signals'
+import { create as createID, Identity } from '@bicycle-codes/identity'
+import { program as createProgram } from '@oddjs/odd'
 import Route from 'route-event'
 import { BrowserLevel } from 'browser-level'
 import charwise from 'charwise-compact'
 import ts from 'monotonic-timestamp'
+import ky from 'ky'
 import Debug from '@nichoth/debug'
 const debug = Debug()
+
+const PUSH_URL = '/api/push'
 
 export type Todo = {
     completed:boolean
@@ -20,12 +25,28 @@ export type Todo = {
 export async function State ():Promise<{
     route:Signal<string>;
     todosSignal:Signal<[number, Todo][]>;
+    me:Identity;
     _todos;
     _nameIndex;
     _db:InstanceType<typeof BrowserLevel<charwise, number|Todo>>;
     _setRoute:(path:string)=>void;
 }> {  // eslint-disable-line indent
     const onRoute = Route()
+
+    const program = await createProgram({
+        namespace: {
+            name: 'level-todo',
+            creator: 'bicycle-computing'
+        }
+    })
+
+    const crypto = program.components.crypto
+
+    const me = await createID(crypto, {
+        humanName: 'tester'
+    })
+
+    debug('your ID', me)
 
     // Create a database called 'example123'
     const db = new BrowserLevel<charwise, number|Todo>('example123', {
@@ -61,6 +82,7 @@ export async function State ():Promise<{
         _db: db,
         _todos: todos,
         _nameIndex: nameIndex,
+        me,
         todosSignal: signal<[number, Todo][]>([]),
         route: signal<string>(location.pathname + location.search)
     }
@@ -194,4 +216,20 @@ if (import.meta.env.DEV) {
     window.State = State
     // @ts-expect-error DEV env
     window.BrowserLevel = BrowserLevel
+}
+
+/**
+ * Push our local state to the server
+ */
+State.Push = async function (state:Awaited<ReturnType<typeof State>>) {
+    // local state is the source of truth
+    // this would create merge conflicts if
+    // we were doing this with offline capability &
+    // multiple devices
+
+    const list = await state._todos.iterator().all()
+
+    ky.post(PUSH_URL, {
+        json: list
+    })
 }

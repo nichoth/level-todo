@@ -26,6 +26,7 @@
     "declarationMap": true
   },
   "include": [
+    "netlify",
     "example",
     "src/**/*",
     "test",

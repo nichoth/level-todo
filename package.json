@@ -22,16 +22,23 @@
     "prepublishOnly": "npm run build"
   },
   "dependencies": {
+    "@bicycle-codes/identity": "^0.6.0",
+    "@bicycle-codes/request": "^0.6.2",
+    "@netlify/functions": "^2.6.0",
     "@nichoth/components": "^0.16.7",
     "@nichoth/routes": "^4.0.7",
+    "@oddjs/odd": "^0.37.2",
     "@preact/signals": "^1.2.3",
     "@types/events": "^3.0.3",
     "browser-level": "^1.0.1",
     "charwise-compact": "^6.0.1",
     "events": "^3.3.0",
+    "faunadb": "^4.8.0",
     "htm": "^3.1.1",
+    "ky": "^1.2.3",
     "level-web-stream": "^1.1.0",
     "monotonic-timestamp": "^0.0.9",
+    "netlify-cli": "^17.22.1",
     "preact": "^10.20.0",
     "route-event": "^4.2.20"
   },
