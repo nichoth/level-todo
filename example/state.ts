@@ -1,20 +1,52 @@
 import { Signal, signal } from '@preact/signals'
-import { create as createID, Identity } from '@bicycle-codes/identity'
+import stringify from 'json-canon'
+import {
+    create as createID,
+    Identity,
+    EncryptedMessage
+} from '@bicycle-codes/identity'
 import { program as createProgram } from '@oddjs/odd'
 import Route from 'route-event'
 import { BrowserLevel } from 'browser-level'
 import charwise from 'charwise-compact'
+import { toString } from 'uint8arrays/to-string'
 import ts from 'monotonic-timestamp'
+import { SignedRequest } from '@bicycle-codes/request'
+import { blake3 } from '@noble/hashes/blake3'
 import ky from 'ky'
+import type { DID } from '@bicycle-codes/identity'
 import Debug from '@nichoth/debug'
+import { Implementation } from '@oddjs/odd/lib/components/crypto/implementation'
 const debug = Debug()
 
 const PUSH_URL = '/api/push'
 
 export type Todo = {
-    completed:boolean
-    name:string
+    completed:boolean;
+    name:string;
 }
+
+export interface Metadata {
+    proof:string;  // hash of the (unencrypted) content
+    localSeq:number;  // the seq number for *this device* only
+    username:string;
+    author:DID;  // DID for this device
+}
+
+export interface DomainMessage {
+    metadata:Metadata;
+    content:EncryptedMessage
+}
+
+// export type EncryptedMessage = {
+//     metadata:Metadata;
+//     content:string|null;  // stringified & encrypted JSON object
+// }
+
+// export type UnencryptedMessage = {
+//     metadata:Metadata|Metadata;
+//     content:object|null;  // `content` gets JSON stringified
+// }
 
 /**
  * The issue is the encodings are different for each sublevel
@@ -22,14 +54,21 @@ export type Todo = {
  * You *can* get all values, including subs, if the encoding is the same
  */
 
+/**
+ * Create app state. We use a timestamp as keys for todo items in levelDB.
+ *
+ * @returns Application state
+ */
 export async function State ():Promise<{
     route:Signal<string>;
-    todosSignal:Signal<[number, Todo][]>;
+    todosSignal:Signal<[number, EncryptedMessage][]>;
     me:Identity;
     _todos;
     _nameIndex;
-    _db:InstanceType<typeof BrowserLevel<charwise, number|Todo>>;
+    _db:InstanceType<typeof BrowserLevel<charwise, EncryptedMessage>>;
+    _request:ReturnType<typeof SignedRequest>
     _setRoute:(path:string)=>void;
+    _crypto:Implementation
 }> {  // eslint-disable-line indent
     const onRoute = Route()
 
@@ -42,6 +81,8 @@ export async function State ():Promise<{
 
     const crypto = program.components.crypto
 
+    const request = SignedRequest(ky, crypto, window.localStorage)
+
     const me = await createID(crypto, {
         humanName: 'tester'
     })
@@ -49,7 +90,7 @@ export async function State ():Promise<{
     debug('your ID', me)
 
     // Create a database called 'example123'
-    const db = new BrowserLevel<charwise, number|Todo>('example123', {
+    const db = new BrowserLevel<charwise, EncryptedMessage>('example123', {
         keyEncoding: charwise,
         valueEncoding: 'json'
     })
@@ -82,8 +123,10 @@ export async function State ():Promise<{
         _db: db,
         _todos: todos,
         _nameIndex: nameIndex,
+        _request: request,
+        _crypto: crypto,
         me,
-        todosSignal: signal<[number, Todo][]>([]),
+        todosSignal: signal<[number, EncryptedMessage][]>([]),
         route: signal<string>(location.pathname + location.search)
     }
 
@@ -118,12 +161,12 @@ export async function State ():Promise<{
 
 State.GetDB = function (
     state:Awaited<ReturnType<typeof State>>
-):InstanceType<typeof BrowserLevel<charwise, number|Todo>> {
+):InstanceType<typeof BrowserLevel<charwise, EncryptedMessage>> {
     return state._db
 }
 
 /**
- * Add a new user to the database, and create a secondary index of name.
+ * Add a new todo item to the database.
  *
  * @param state State instance
  * @param name The new user's name
@@ -138,7 +181,30 @@ State.Create = async function Create (
 
     debug('putting the new thing', name, newId)
 
-    // in here, should stringify & encrypt the value
+    const last = state.todosSignal.value[state.todosSignal.value.length]
+    let localSeq:number
+    if (last) {
+        localSeq = last[1].metadata.localSeq + 1
+    } else {
+        localSeq = 1
+    }
+
+    const pendingTodo = { name, completed: false }
+
+    const newMetadata:Metadata = {
+        // hash of the (unencrypted) content
+        proof: toString(blake3(stringify(pendingTodo)), 'base64urlpad'),
+        localSeq,  // the seq number for *this device* only
+        username: state.me.username,
+        author: state.me.rootDID
+    }
+
+    // encrypt our todo item
+
+    await state._db.put(newId, {
+        metadata: newMetadata,
+        content: ''
+    })
 
     await state._db.batch([{
         type: 'put',

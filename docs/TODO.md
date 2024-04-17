@@ -1,4 +1,5 @@
 # TODO
 
 * [ ] add collections to Fauna DB
-* [ ] check headers in HTTP requests
+* [x] check headers in HTTP requests
+* [ ] use auth header client-side

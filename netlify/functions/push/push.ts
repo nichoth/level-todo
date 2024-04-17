@@ -1,12 +1,13 @@
 import { Handler, HandlerEvent } from '@netlify/functions'
 import faunadb from 'faunadb'
 import { parseHeader, verifyParsed } from '@bicycle-codes/request'
+import { createDeviceName } from '@bicycle-codes/identity'
 
 const { Client } = faunadb
 const q = faunadb.query
 
 const client = new Client({
-    secret: process.env.FAUNADB_SERVER_SECRET!
+    secret: process.env.FAUNA_SECRET!
 })
 
 /**
@@ -31,33 +32,40 @@ export const handler:Handler = async function handler (ev:HandlerEvent) {
     try {
         sigOk = await verifyParsed(parsedHeader)
     } catch (err) {
-        return { statusCode: 401, body: 'Unauthorized' }
+        return { statusCode: 401, body: 'Unauthorized', headers: Headers() }
     }
 
     if (!sigOk) {
         // in real life, we would need to check that `parsedHeader.author`
         // is allowed to use our server
-        return { statusCode: 401, body: 'Unauthorized' }
+        return { statusCode: 401, body: 'Unauthorized', headers: Headers() }
+    }
+
+    let body
+    try {
+        body = JSON.parse(ev.body!)
+    } catch (err) {
+        return { statusCode: 400, headers: Headers() }
     }
 
     if (ev.httpMethod === 'POST') {
-        // write state
-        client.query(q.Create({
-            // todo
-        }))
+        // create a todo item
+        client.query(q.Create(
+            q.Collection('todo', { data: body })
+        ))
     }
 
     if (ev.httpMethod === 'DELETE') {
         // delete a list
     }
 
-    return { statusCode: 405 }
+    return { statusCode: 405, headers: Headers() }
 }
 
 function Headers () {
     return {
         'Access-Control-Allow-Origin': '*',
-        'Access-Control-Allow-Methods': 'GET, POST, OPTIONS',
+        'Access-Control-Allow-Methods': 'GET, DELETE, POST, OPTIONS',
         'Access-Control-Allow-Headers':
             'Content-Type, Access-Control-Allow-Headers, X-Requested-With, Authorization'
     }
