@@ -1,9 +1,11 @@
 import { Signal, signal } from '@preact/signals'
 import stringify from 'json-canon'
+// import type { AbstractSublevel } from 'abstract-level'
 import {
     create as createID,
     Identity,
-    EncryptedMessage
+    encryptTo,
+    decryptMsg
 } from '@bicycle-codes/identity'
 import { program as createProgram } from '@oddjs/odd'
 import Route from 'route-event'
@@ -20,6 +22,12 @@ import { Implementation } from '@oddjs/odd/lib/components/crypto/implementation'
 const debug = Debug()
 
 const PUSH_URL = '/api/push'
+const PULL_URL = '/api/pull'
+
+/**
+ * This is storing things in plain text in our local indexedDB.
+ * They are encrypted before sending to the server.
+ */
 
 export type Todo = {
     completed:boolean;
@@ -35,7 +43,7 @@ export interface Metadata {
 
 export interface DomainMessage {
     metadata:Metadata;
-    content:EncryptedMessage
+    content:Todo;
 }
 
 // export type EncryptedMessage = {
@@ -61,11 +69,12 @@ export interface DomainMessage {
  */
 export async function State ():Promise<{
     route:Signal<string>;
-    todosSignal:Signal<[number, EncryptedMessage][]>;
+    todosSignal:Signal<[number, DomainMessage][]>;
     me:Identity;
-    _todos;
+    pendingChange:boolean;
+    _todos
     _nameIndex;
-    _db:InstanceType<typeof BrowserLevel<charwise, EncryptedMessage>>;
+    _db:InstanceType<typeof BrowserLevel<charwise, DomainMessage>>;
     _request:ReturnType<typeof SignedRequest>
     _setRoute:(path:string)=>void;
     _crypto:Implementation
@@ -90,7 +99,7 @@ export async function State ():Promise<{
     debug('your ID', me)
 
     // Create a database called 'example123'
-    const db = new BrowserLevel<charwise, EncryptedMessage>('example123', {
+    const db = new BrowserLevel<charwise, DomainMessage>('example123', {
         keyEncoding: charwise,
         valueEncoding: 'json'
     })
@@ -125,8 +134,9 @@ export async function State ():Promise<{
         _nameIndex: nameIndex,
         _request: request,
         _crypto: crypto,
+        pendingChange: false,
         me,
-        todosSignal: signal<[number, EncryptedMessage][]>([]),
+        todosSignal: signal<[number, DomainMessage][]>([]),
         route: signal<string>(location.pathname + location.search)
     }
 
@@ -161,7 +171,7 @@ export async function State ():Promise<{
 
 State.GetDB = function (
     state:Awaited<ReturnType<typeof State>>
-):InstanceType<typeof BrowserLevel<charwise, EncryptedMessage>> {
+):InstanceType<typeof BrowserLevel<charwise, DomainMessage>> {
     return state._db
 }
 
@@ -179,7 +189,7 @@ State.Create = async function Create (
     const nameIndex = state._nameIndex
     const newId = ts()
 
-    debug('putting the new thing', name, newId)
+    debug('putting the new thing', newId, name)
 
     const last = state.todosSignal.value[state.todosSignal.value.length]
     let localSeq:number
@@ -199,18 +209,18 @@ State.Create = async function Create (
         author: state.me.rootDID
     }
 
-    // encrypt our todo item
+    debug('new metadata', newMetadata)
 
-    await state._db.put(newId, {
-        metadata: newMetadata,
-        content: ''
-    })
+    // await state._todos.put(newId, {
+    //     metadata: newMetadata,
+    //     content: pendingTodo
+    // })
 
     await state._db.batch([{
         type: 'put',
         sublevel: todos,
         key: newId,
-        value: { name, completed: false }
+        value: { metadata: newMetadata, content: pendingTodo }
     }, {
         type: 'put',
         sublevel: nameIndex,
@@ -233,16 +243,16 @@ State.refreshState = async function (
     state.todosSignal.value = list
 }
 
-State.GetByName = async function GetByName (
-    state:Awaited<ReturnType<typeof State>>,
-    name:string
-) {
-    const id = await state._nameIndex.get(name)
-    debug('got id', id)
-    const record = await state._todos.get(parseInt(id))
-    debug('got todo record', record)
-    return record
-}
+// State.GetByName = async function GetByName (
+//     state:Awaited<ReturnType<typeof State>>,
+//     name:string
+// ) {
+//     const id = await state._nameIndex.get(name)
+//     debug('got id', id)
+//     const record = await state._todos.get(parseInt(id))
+//     debug('got todo record', record)
+//     return record
+// }
 
 State.Complete = async function Complete (
     state:Awaited<ReturnType<typeof State>>,
@@ -250,17 +260,11 @@ State.Complete = async function Complete (
 ) {
     // first update DB
     debug('marking as complete', id)
-    const doc = await state._todos.get(parseInt(id));
-    (doc as Todo).completed = true
-    await state._todos.put(parseInt(id), doc)
+    const doc = (await state._todos.get(parseInt(id)))
+    const { metadata, content } = doc
+    content.completed = true
+    await state._todos.put(parseInt(id), { metadata, content })
     await State.refreshState(state)
-
-    // then update state
-    // const list = state.todosSignal.value
-    // list[list.indexOf(todo!)] = [parseInt(id), { ...todo, completed: false }]
-    // const todo = state.todosSignal.value.find(([key]) => {
-    //     return key === parseInt(id)
-    // })
 }
 
 State.Uncomplete = async function Uncomplete (
@@ -273,7 +277,12 @@ State.Uncomplete = async function Uncomplete (
     })
     if (!oldDoc) throw new Error('not old doc')
 
-    await state._todos.put(id, { ...oldDoc[1], completed: false })
+    await state._todos.put(id, {
+        ...oldDoc[1],
+        content: Object.assign(oldDoc[1].content, {
+            completed: false
+        })
+    })
     await State.refreshState(state)
 }
 
@@ -295,7 +304,28 @@ State.Push = async function (state:Awaited<ReturnType<typeof State>>) {
 
     const list = await state._todos.iterator().all()
 
-    ky.post(PUSH_URL, {
-        json: list
+    debug('list', list)
+
+    const encryptedList = await Promise.all(list.map(([id, todo]) => {
+        return encryptTo(state.me, [state.me], stringify([id, todo]))
+    }))
+
+    debug('encrypted list', encryptedList)
+
+    await state._request.post(PUSH_URL, {
+        json: encryptedList,
     })
+}
+
+State.Pull = async function Pull (state:Awaited<ReturnType<typeof State>>) {
+    const encryptedList = await state._request.get(PULL_URL).json()
+    const list:[number, DomainMessage][] = await Promise.all(
+        encryptedList.map(async msg => {
+            const decryped = await decryptMsg(state._crypto, msg)
+            const arr = JSON.parse(decryped)
+            return [parseInt(arr[0]), arr[1]]
+        })
+    )
+
+    state._todos.value = list
 }

@@ -48,6 +48,8 @@ export const handler:Handler = async function handler (ev:HandlerEvent) {
         return { statusCode: 400, headers: Headers() }
     }
 
+    const username = createDeviceName(body.author)
+
     if (ev.httpMethod === 'POST') {
         // create a todo item
         client.query(q.Create(

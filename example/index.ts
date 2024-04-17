@@ -46,10 +46,15 @@ export function Example () {
             ${Object.keys(state.todosSignal.value).length ?
                 html`<ul class="todo-list">
                     ${state.todosSignal.value.map(([key, todo]) => {
-                        const classes = todo.completed ? 'todo completed' : 'todo'
+                        debug('the todo item', key, todo)
+
+                        const classes = todo.content.completed ?
+                            'todo completed' :
+                            'todo'
 
                         return html`<li key=${key} class=${classes}>
-                            <input class="toggle" checked=${todo.completed}
+                            <input class="toggle"
+                                checked=${todo.content.completed}
                                 type="checkbox"
                                 name="done-status"
                                 id="${key}"
@@ -58,7 +63,7 @@ export function Example () {
                             />
 
                             <label>
-                                ${todo.name}
+                                ${todo.content.name}
                             </label>
                         </li>`
                     })}
