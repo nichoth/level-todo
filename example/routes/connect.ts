@@ -8,10 +8,13 @@ import { writeKeyToDid } from '@ssc-half-light/util'
 import { Button } from '@nichoth/components/htm/button'
 import { TextInput } from '@nichoth/components/htm/text-input'
 import { State } from '../state.js'
+import Debug from '@nichoth/debug'
+const debug = Debug()
 
 /**
  * Visit this route from a new device.
  */
+
 export const Connect:FunctionComponent<{
     state:Awaited<ReturnType<typeof State>>
 }> = function ({ state }) {
@@ -56,6 +59,8 @@ export const Connect:FunctionComponent<{
          *   with the AES key encrypted to us
          */
         partySocket.addEventListener('message', async (ev) => {
+            debug('got a message...', JSON.parse(ev.data))
+
             // we should only get 1 message, the new identity
             //   (the ID including this device)
             try {
@@ -77,6 +82,7 @@ export const Connect:FunctionComponent<{
          */
         partySocket.send(JSON.stringify({
             deviceName,
+            humanReadableDeviceName,
             newDid: await writeKeyToDid(state._crypto),
             exchangeKey: toString(
                 await state._crypto.keystore.publicExchangeKey()

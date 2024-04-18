@@ -6,6 +6,18 @@ body {
     }
 }
 
+h1 {
+    font-size: 1.5rem;
+}
+
+h2 {
+    font-size: 1.2rem;
+}
+
+hr {
+    margin: 1.5rem 0;
+}
+
 button {
     cursor: pointer;
 }
@@ -14,6 +26,68 @@ form {
     margin-bottom: 2rem;
     border: 1px solid;
     padding: 1rem;
+}
+
+input[type=number]::-webkit-inner-spin-button, 
+input[type=number]::-webkit-outer-spin-button { 
+    -webkit-appearance: none; 
+    margin: 0; 
+}
+
+.route {
+    margin-bottom: 8rem;
+}
+
+.toast.success {
+    border: 2px solid green;
+}
+
+.the-pin {
+    margin-bottom: 2rem;
+
+    & .the-code {
+        font-size: 2rem;
+        letter-spacing: 0.5rem;
+        margin-top: 2rem;
+        text-align: center;
+    }
+}
+
+.pin-input {
+    margin-bottom: 1rem;
+}
+
+#pin-input {
+    letter-spacing: 0.5rem;
+    font-family: "Courier New", Courier, monospace;
+    font-size: 2rem;
+    font-weight: bold;
+    /* border: 1px solid; */
+    border: none;
+    border-bottom: 2px solid;
+    padding: 0.4rem;
+    padding-bottom: 0.2rem;
+    width: 11rem;
+
+    &:hover {
+        outline: none;
+    }
+}
+
+nav {
+    & ul {
+        margin: 0.5rem 1rem;
+        list-style: none;
+        padding: 0;
+        gap: 1rem;
+        display: flex;
+    }
+}
+
+.meta-controls {
+    display: flex;
+    justify-content: flex-end;
+    gap: 1rem;
 }
 
 .push-pull-controls {

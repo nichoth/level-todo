@@ -1,7 +1,8 @@
 import { html } from 'htm/preact'
 import { FunctionComponent } from 'preact'
 import { TextInput } from '@nichoth/components/htm/text-input'
-import { ButtonOutline, Button } from '@nichoth/components/htm/button'
+import { Button } from '@nichoth/components/htm/button'
+import { ButtonOutline } from '@nichoth/components/htm/button-outline'
 import { State } from '../state.js'
 
 export const HomeRoute:FunctionComponent<{
@@ -58,6 +59,8 @@ export const HomeRoute:FunctionComponent<{
             html`<em class="empty-list">none</em>`
         }
 
+        <hr />
+
         <form onSubmit=${handleSubmit}>
             <h2>Create something to do</h2>
 
@@ -69,9 +72,22 @@ export const HomeRoute:FunctionComponent<{
             <${Button} isSpinning=${false} type=${'submit'}>Submit<//>
         </form>
 
+        <p>
+            The buttons <code>push</code> and <code>pull</code> will just
+            overwrite the local or remote state. We are not doing anything
+            clever with Merkle lists or state reconciliation.
+        </p>
+
         <div class="push-pull-controls">
             <${ButtonOutline} onClick=${() => State.Push(state)}>push<//>
             <${ButtonOutline} onClick=${() => State.Pull(state)}>pull<//>
+        </div>
+
+        <hr />
+
+        <div class="meta-controls">
+            <a href="/link-device">Link a new device to this account</a>
+            <a href="/connect">Add this device to an existing account</a>
         </div>
     </div>`
 }

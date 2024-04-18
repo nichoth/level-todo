@@ -23,13 +23,22 @@ export function LevelExample () {
             return html`<h1>404</h1>`
         }
 
-    return html`<div class="content">
+    return html`<header>
+        <nav>
+            <ul class="nav">
+                <li><a href="/">home</a></li>
+                <li><a href="/devices">devices</a></li>
+            </ul>
+        </nav>
+    </header>
+
+    <div class="content">
         <h1>Encryption, E2E</h1>
 
         ${state.me.value ?
             html`
                 <div>You are: <strong>${state.me.value.humanName}</strong></div>
-                <h2>Create a new thing to do</h2>
+                <hr />
             ` :
             null
         }

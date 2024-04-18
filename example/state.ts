@@ -99,11 +99,13 @@ export async function State ():Promise<{
     const request = SignedRequest(ky, crypto, window.localStorage)
 
     const storedUsername = localStorage.getItem('username')
+    const readableDeviceName = localStorage.getItem('readableDeviceName')
 
     let me:Awaited<ReturnType<typeof createID>>|null
     if (storedUsername) {
         me = await createID(crypto, {
-            humanName: storedUsername
+            humanName: storedUsername,
+            humanReadableDeviceName: readableDeviceName || 'root'
         })
     } else {
         me = null
@@ -199,7 +201,8 @@ State.CreateUser = async function (
     localStorage.setItem('username', name)
 
     state.me.value = await createID(state._crypto, {
-        humanName: name
+        humanName: name,
+        humanReadableDeviceName: 'root'
     })
 }
 
@@ -368,12 +371,8 @@ State.Pull = async function Pull (state:Awaited<ReturnType<typeof State>>) {
 State.AddDevice = function (
     state:Awaited<ReturnType<typeof State>>,
     newId:Identity,
-    newDevice:AppDeviceRecord
 ) {
     state.me.value = newId
-    state.devices.value = Object.assign({}, state.devices.value, {
-        [newDevice.deviceName]: newDevice
-    })
 
     /**
      * @TODO
@@ -384,13 +383,16 @@ State.AddDevice = function (
 }
 
 /**
- * Call this from a new device, after linking it to an existing device
+ * Call this from a new device, after linking it to an existing device.
  */
 State.LinkSuccess = function LinkSuccess (
     state:Awaited<ReturnType<typeof State>>,
     newIdRecord:Identity,
     newDevice:AppDeviceRecord
 ) {
+    // add our human name to localStorage
+    localStorage.setItem('username', newIdRecord.humanName)
+
     batch(() => {
         state.me.value = newIdRecord
         state.devices.value = Object.assign({}, state.devices.value, {

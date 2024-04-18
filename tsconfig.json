@@ -27,7 +27,7 @@
   },
   "include": [
     "netlify/**/*",
-    "example",
+    "example/**/*",
     "src/**/*",
     "test",
     "lib.es5.d.ts"

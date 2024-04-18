@@ -7,7 +7,9 @@ import { customAlphabet } from '@nichoth/nanoid'
 import { numbers } from '@nichoth/nanoid-dictionary'
 import { State } from '../state.js'
 import { addDevice } from '@bicycle-codes/identity'
+import Debug from '@nichoth/debug'
 import '@nichoth/components/text-input.css'
+const debug = Debug()
 
 const PARTY_URL = (import.meta.env.DEV ?
     'localhost:1999' :
@@ -17,6 +19,7 @@ type Message = {
     newDid:`did:key:z${string}`;
     deviceName:string;
     exchangeKey:string;
+    humanReadableDeviceName:string;  // <-- a name for the new device
 }
 
 /**
@@ -63,7 +66,15 @@ export const LinkDevice:FunctionComponent<{
                 throw new Error('bad json')
             }
 
-            const { newDid, exchangeKey, deviceName } = msg
+            debug('got a message from the new device', msg)
+
+            const {
+                newDid,
+                exchangeKey,
+                deviceName,
+                humanReadableDeviceName
+            } = msg
+
             if (!newDid || !exchangeKey || !deviceName) {
                 throw new Error('bad message')
             }
@@ -75,13 +86,13 @@ export const LinkDevice:FunctionComponent<{
                 state.me.value,
                 state._crypto,
                 newDid,
-                exchangeKey
+                exchangeKey,
+                humanReadableDeviceName
             )
 
-            State.AddDevice(state, newIdentity, {
-                humanReadableDeviceName: deviceName,
-                deviceName
-            })
+            debug('got the new identity', newIdentity)
+
+            State.AddDevice(state, newIdentity)
 
             partySocket.send(JSON.stringify(newIdentity))
             partySocket.close()
@@ -94,10 +105,12 @@ export const LinkDevice:FunctionComponent<{
         <h2>Add a new device to this identity</h2>
 
         <div className="the-pin">
-            <code>${code}</code>
             <p>
-                Visit '/connect' on the new device,
-                then enter this PIN.
+                Visit <code>'/connect' </code>on the new device,
+                and enter this PIN.
+            </p>
+            <p class="the-code">
+                <code>${code}</code>
             </p>
         </div>
     </div>`

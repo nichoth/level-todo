@@ -22,7 +22,7 @@
     "prepublishOnly": "npm run build"
   },
   "dependencies": {
-    "@bicycle-codes/identity": "^0.6.5",
+    "@bicycle-codes/identity": "^0.7.0",
     "@bicycle-codes/request": "^0.6.3",
     "@netlify/functions": "^2.6.0",
     "@nichoth/components": "^0.16.7",
