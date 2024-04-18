@@ -1,14 +1,15 @@
 import { html } from 'htm/preact'
 import { FunctionComponent } from 'preact'
 import * as z from '@bicycle-codes/identity/z'
-import { createDeviceName, toString } from '@bicycle-codes/identity'
+import { Identity, createDeviceName, toString } from '@bicycle-codes/identity'
 import { useComputed, useSignal } from '@preact/signals'
 import { PartySocket } from 'partysocket'
 import { writeKeyToDid } from '@ssc-half-light/util'
 import { Button } from '@nichoth/components/htm/button'
 import { TextInput } from '@nichoth/components/htm/text-input'
-import { State } from '../state.js'
 import Debug from '@nichoth/debug'
+import type { Certificate } from './link-device.js'
+import { State } from '../state.js'
 const debug = Debug()
 
 /**
@@ -61,12 +62,18 @@ export const Connect:FunctionComponent<{
         partySocket.addEventListener('message', async (ev) => {
             debug('got a message...', JSON.parse(ev.data))
 
+            const { newIdentity, certificate }:{
+                newIdentity:Identity;
+                certificate:Certificate
+            } = JSON.parse(ev.data)
+
             // we should only get 1 message, the new identity
             //   (the ID including this device)
             try {
                 State.LinkSuccess(
                     state,
-                    z.Identity.parse(JSON.parse(ev.data))
+                    z.Identity.parse(newIdentity),
+                    certificate
                 )
             } catch (err) {
                 console.error(err)

@@ -5,9 +5,10 @@ import { useSignal } from '@preact/signals'
 import { PartySocket } from 'partysocket'
 import { customAlphabet } from '@nichoth/nanoid'
 import { numbers } from '@nichoth/nanoid-dictionary'
-import { State } from '../state.js'
-import { addDevice } from '@bicycle-codes/identity'
+import { DID, addDevice } from '@bicycle-codes/identity'
+import { create as createMessage } from '@bicycle-codes/message'
 import Debug from '@nichoth/debug'
+import { State } from '../state.js'
 import '@nichoth/components/text-input.css'
 const debug = Debug()
 
@@ -21,6 +22,13 @@ type Message = {
     exchangeKey:string;
     humanReadableDeviceName:string;  // <-- a name for the new device
 }
+
+/**
+ * Assert that the given `sameAs` DID is equivalent to the `author` DID.
+ */
+export type Certificate = Awaited<
+    ReturnType<typeof createMessage<{ sameAs:DID }>>
+>
 
 /**
  * Visit this route from an existing device.
@@ -55,8 +63,8 @@ export const LinkDevice:FunctionComponent<{
         })
 
         partySocket.addEventListener('message', async (ev) => {
-            // we should only get one message containing the DID
-            //   and exchangeKey and deviceName of the new device
+            // we should only get one message containing the DID,
+            //   exchangeKey, and deviceName of the new device
 
             let msg:Message
             try {
@@ -94,8 +102,21 @@ export const LinkDevice:FunctionComponent<{
 
             State.AddDevice(state, newIdentity)
 
-            partySocket.send(JSON.stringify(newIdentity))
+            const certificate:Certificate = await createMessage<{ sameAs:DID }>(
+                state._crypto,
+                {
+                    sameAs: newDid
+                }
+            )
+
+            partySocket.send(JSON.stringify({
+                newIdentity,
+                certificate
+            }))
+
             partySocket.close()
+
+            state._setRoute('/')
         })
 
         return () => partySocket.close()

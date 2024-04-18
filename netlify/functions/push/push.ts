@@ -65,7 +65,6 @@ export const handler:Handler = async function handler (ev:HandlerEvent) {
         return { statusCode: 400, headers: Headers() }
     }
 
-    console.log('**body**', body)
     const { username } = body.creator
 
     if (

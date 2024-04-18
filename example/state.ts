@@ -16,10 +16,11 @@ import { toString } from 'uint8arrays/to-string'
 import ts from 'monotonic-timestamp'
 import { SignedRequest } from '@bicycle-codes/request'
 import { blake3 } from '@noble/hashes/blake3'
-import ky from 'ky'
-import type { DID } from '@bicycle-codes/identity'
+import ky, { HTTPError } from 'ky'
+import type { DID, EncryptedMessage } from '@bicycle-codes/identity'
 import Debug from '@nichoth/debug'
 import { Implementation } from '@oddjs/odd/lib/components/crypto/implementation'
+import { Certificate } from './routes/link-device.js'
 const debug = Debug()
 
 const PUSH_URL = '/api/push'
@@ -58,6 +59,7 @@ export async function State ():Promise<{
     pendingChange:boolean;
     code:Signal<string|null>;
     linkStatus:Signal<'success'|null>;
+    certificate:Signal<Certificate|null>;
     _todos;
     _partysocket:InstanceType<typeof PartySocket>|null;
     _nameIndex;
@@ -132,6 +134,7 @@ export async function State ():Promise<{
         _request: request,
         _crypto: crypto,
         _partysocket: null,
+        certificate: signal(null),
         linkStatus: signal(null),
         code: signal(null),
         pendingChange: false,
@@ -183,6 +186,7 @@ State.CreateUser = async function (
     }:{ name:string, humanReadableDeviceName?:string }
 ) {
     localStorage.setItem('humanName', name)
+    localStorage.setItem('humanReadableDeviceName ', humanReadableDeviceName || '')
 
     state.me.value = await createID(state._crypto, {
         humanName: name,
@@ -328,50 +332,74 @@ State.Push = async function (state:Awaited<ReturnType<typeof State>>) {
  * Fetch state from the server
  * This will overwrite any local state
  */
-State.Pull = async function Pull (state:Awaited<ReturnType<typeof State>>) {
+State.Pull = async function Pull (
+    state:Awaited<ReturnType<typeof State>>
+):Promise<void> {
     // get the data from server
-    const encryptedList = await state._request.get(PULL_URL).json()
+    let encryptedList:EncryptedMessage
+    try {
+        encryptedList = await state._request.post(PULL_URL, {
+            json: {
+                username: state.me.value?.username,
+                certificate: state.certificate.value
+            }
+        }).json()
+    } catch (err) {
+        if ((err as HTTPError).response.status === 404) {
+            // do nothing
+            // that means this identity has no state saved to the server
+            debug('...got a 404 on the pull...', err)
+            return
+        }
 
-    debug('encrypted list', encryptedList)
+        throw err
+    }
+
+    debug('encrypted list', encryptedList!)
 
     // decrypt the state
     const list:[number, DomainMessage][] = JSON.parse(await decryptMsg(
         state._crypto,
-        encryptedList
+        encryptedList!
     ))
 
-    debug('pulled a list', list)
+    debug('decrypted list', list)
 
     // set state
-    state._todos.value = list
+    state.todosSignal.value = list
 }
 
 /**
  * Add a new device to this account.
  *
- * This should be called from the route `link-device`
- * (from the existing device).
+ * Call this from an existing device,
+ * (after linking a new device).
  */
 State.AddDevice = function (
     state:Awaited<ReturnType<typeof State>>,
     newId:Identity,
 ) {
-    state.me.value = newId
-    state.linkStatus.value = 'success'
+    batch(() => {
+        state.me.value = newId
+        state.linkStatus.value = 'success'
+    })
 }
 
 /**
- * Call this from a new device, after linking it to an existing device.
+ * Call this from a new device,
+ * after linking it to an existing device.
  */
 State.LinkSuccess = function LinkSuccess (
     state:Awaited<ReturnType<typeof State>>,
     newIdRecord:Identity,
+    certificate:Certificate
 ) {
     // add our human name to localStorage
-    localStorage.setItem('username', newIdRecord.humanName)
+    localStorage.setItem('humanName', newIdRecord.humanName)
 
     batch(() => {
         state.me.value = newIdRecord
+        state.certificate.value = certificate
         state.linkStatus.value = 'success'
     })
 
