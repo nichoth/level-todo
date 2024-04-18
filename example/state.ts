@@ -1,11 +1,15 @@
-import { Signal, signal } from '@preact/signals'
+import { Signal, signal, batch } from '@preact/signals'
+import { numbers } from '@nichoth/nanoid-dictionary'
+import { PartySocket } from 'partysocket'
+import { customAlphabet } from '@nichoth/nanoid'
 import stringify from 'json-canon'
 // import type { AbstractSublevel } from 'abstract-level'
 import {
     create as createID,
     Identity,
     encryptTo,
-    decryptMsg
+    decryptMsg,
+    addDevice
 } from '@bicycle-codes/identity'
 import { program as createProgram } from '@oddjs/odd'
 import Route from 'route-event'
@@ -24,10 +28,20 @@ const debug = Debug()
 const PUSH_URL = '/api/push'
 const PULL_URL = '/api/pull'
 
+const serverAddress = (import.meta.env.DEV ?
+    'localhost:1999' :
+    'identity-party.nichoth.partykit.dev')
+
 /**
  * This is storing things in plain text in our local indexedDB.
  * They are encrypted before sending to the server.
  */
+
+type Message = {
+    newDid:`did:key:z${string}`;
+    deviceName:string;
+    exchangeKey:string;
+}
 
 export type Todo = {
     completed:boolean;
@@ -57,22 +71,19 @@ export interface DomainMessage {
 // }
 
 /**
- * The issue is the encodings are different for each sublevel
- *
- * You *can* get all values, including subs, if the encoding is the same
- */
-
-/**
- * Create app state. We use a timestamp as keys for todo items in levelDB.
+ * Create app state. We use a timestamp as key for todo items in levelDB.
  *
  * @returns Application state
  */
 export async function State ():Promise<{
     route:Signal<string>;
     todosSignal:Signal<[number, DomainMessage][]>;
-    me:Identity;
+    me:Signal<Identity|null>;
     pendingChange:boolean;
+    code:Signal<string|null>;
+    linkStatus:Signal<'success'|null>
     _todos
+    _partysocket:InstanceType<typeof PartySocket>|null
     _nameIndex;
     _db:InstanceType<typeof BrowserLevel<charwise, DomainMessage>>;
     _request:ReturnType<typeof SignedRequest>
@@ -92,11 +103,18 @@ export async function State ():Promise<{
 
     const request = SignedRequest(ky, crypto, window.localStorage)
 
-    const me = await createID(crypto, {
-        humanName: 'tester'
-    })
+    const storedUsername = localStorage.getItem('username')
 
-    debug('your ID', me)
+    let me:Awaited<ReturnType<typeof createID>>|null
+    if (storedUsername) {
+        me = await createID(crypto, {
+            humanName: storedUsername
+        })
+    } else {
+        me = null
+    }
+
+    debug('your ID', me!)
 
     // Create a database called 'example123'
     const db = new BrowserLevel<charwise, DomainMessage>('example123', {
@@ -134,13 +152,16 @@ export async function State ():Promise<{
         _nameIndex: nameIndex,
         _request: request,
         _crypto: crypto,
+        _partysocket: null,
+        linkStatus: signal(null),
+        code: signal(null),
         pendingChange: false,
-        me,
+        me: signal<Identity|null>(me),
         todosSignal: signal<[number, DomainMessage][]>([]),
         route: signal<string>(location.pathname + location.search)
     }
 
-    if (import.meta.env.DEV) {
+    if (import.meta.env.DEV || import.meta.env.MODE === 'staging') {
         // @ts-expect-error DEV mode
         window.state = state
         // @ts-expect-error DEV
@@ -175,11 +196,22 @@ State.GetDB = function (
     return state._db
 }
 
+State.CreateUser = async function (
+    state:Awaited<ReturnType<typeof State>>,
+    { name }:{ name:string }
+) {
+    localStorage.setItem('username', name)
+
+    state.me.value = await createID(state._crypto, {
+        humanName: name
+    })
+}
+
 /**
  * Add a new todo item to the database.
  *
  * @param state State instance
- * @param name The new user's name
+ * @param name The new todo's name
  */
 State.Create = async function Create (
     state:Awaited<ReturnType<typeof State>>,
@@ -205,16 +237,11 @@ State.Create = async function Create (
         // hash of the (unencrypted) content
         proof: toString(blake3(stringify(pendingTodo)), 'base64urlpad'),
         localSeq,  // the seq number for *this device* only
-        username: state.me.username,
-        author: state.me.rootDID
+        username: state.me.value!.username,
+        author: state.me.value!.rootDID
     }
 
     debug('new metadata', newMetadata)
-
-    // await state._todos.put(newId, {
-    //     metadata: newMetadata,
-    //     content: pendingTodo
-    // })
 
     await state._db.batch([{
         type: 'put',
@@ -239,20 +266,19 @@ State.refreshState = async function (
         keyEncoding: charwise
     }).all()
 
-    debug('list of todos', list)
     state.todosSignal.value = list
 }
 
-// State.GetByName = async function GetByName (
-//     state:Awaited<ReturnType<typeof State>>,
-//     name:string
-// ) {
-//     const id = await state._nameIndex.get(name)
-//     debug('got id', id)
-//     const record = await state._todos.get(parseInt(id))
-//     debug('got todo record', record)
-//     return record
-// }
+State.GetByName = async function GetByName (
+    state:Awaited<ReturnType<typeof State>>,
+    name:string
+) {
+    const id = await state._nameIndex.get(name)
+    debug('got id', id)
+    const record = await state._todos.get(parseInt(id))
+    debug('got todo record', record)
+    return record
+}
 
 State.Complete = async function Complete (
     state:Awaited<ReturnType<typeof State>>,
@@ -260,7 +286,7 @@ State.Complete = async function Complete (
 ) {
     // first update DB
     debug('marking as complete', id)
-    const doc = (await state._todos.get(parseInt(id)))
+    const doc:DomainMessage = (await state._todos.get(parseInt(id)))
     const { metadata, content } = doc
     content.completed = true
     await state._todos.put(parseInt(id), { metadata, content })
@@ -304,11 +330,9 @@ State.Push = async function (state:Awaited<ReturnType<typeof State>>) {
 
     const list = await state._todos.iterator().all()
 
-    debug('list', list)
+    debug('pushing a list', list)
 
-    const encryptedList = await Promise.all(list.map(([id, todo]) => {
-        return encryptTo(state.me, [state.me], stringify([id, todo]))
-    }))
+    const encryptedList = await encryptTo(state.me.value!, null, stringify(list))
 
     debug('encrypted list', encryptedList)
 
@@ -317,15 +341,56 @@ State.Push = async function (state:Awaited<ReturnType<typeof State>>) {
     })
 }
 
+/**
+ * Fetch state from the server
+ * This will overwrite any local state
+ */
 State.Pull = async function Pull (state:Awaited<ReturnType<typeof State>>) {
+    // get the data from server
     const encryptedList = await state._request.get(PULL_URL).json()
-    const list:[number, DomainMessage][] = await Promise.all(
-        encryptedList.map(async msg => {
-            const decryped = await decryptMsg(state._crypto, msg)
-            const arr = JSON.parse(decryped)
-            return [parseInt(arr[0]), arr[1]]
-        })
-    )
 
+    debug('encrypted list', encryptedList)
+
+    // decrypt the state
+    const list:[number, DomainMessage][] = JSON.parse(await decryptMsg(
+        state._crypto,
+        encryptedList
+    ))
+
+    debug('pulled a list', list)
+
+    // set state
     state._todos.value = list
+}
+
+/**
+ * Add a new device to this account.
+ *
+ * This should be called from the route `link-device`.
+ */
+State.AddDevice = function (
+    state:Awaited<ReturnType<typeof State>>,
+    newId:Identity
+) {
+    /**
+     * @TODO
+     * Use full (lowercase) alphabet, for less chance of collision?
+     */
+    const PIN = customAlphabet(numbers, 6)
+    state.code.value = ('' + PIN())
+}
+
+/**
+ * Call this from a new device, to say that it is part of an identity
+ */
+export function LinkSuccess (
+    state:Awaited<ReturnType<typeof State>>,
+    newIdRecord:Identity,
+) {
+    batch(() => {
+        state.me.value = newIdRecord
+        state.linkStatus.value = 'success'
+    })
+
+    state._setRoute('/')
 }

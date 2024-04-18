@@ -1,4 +1,5 @@
-import { html } from 'htm/preact'
+// import { html } from 'htm/preact'
+import { Connect } from './connect.js'
 import Router from '@nichoth/routes'
 import { HomeRoute } from './home.js'
 
@@ -9,22 +10,17 @@ export default function _Router ():ReturnType<Router> {
         return HomeRoute
     })
 
-    router.addRoute('/aaa', () => {
-        return () => {
-            return html`<h2>aaa</h2>`
-        }
+    router.addRoute('/connect', () => {
+        return Connect
     })
 
-    router.addRoute('/bbb', () => {
-        return () => {
-            return html`<h2>bbb</h2>`
-        }
-    })
-
-    router.addRoute('/ccc', () => {
-        return () => {
-            return html`<h2>ccc</h2>`
-        }
+    /**
+     * Visit this from an existing device
+     * This creates the websocket room, and will listen for a message
+     * from the new device.
+     */
+    router.addRoute('/link-device', () => {
+        return LinkDevice
     })
 
     return router

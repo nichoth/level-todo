@@ -50,3 +50,8 @@ type UnencryptedTodo = {
     content:object  // `content` gets JSON stringified
 }
 ```
+
+## the server view
+Your *todo* items are encrypted. This is what the server operator sees:
+
+![Screenshot of database](screenshot.png)

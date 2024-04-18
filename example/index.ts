@@ -1,6 +1,9 @@
 import { html } from 'htm/preact'
 import { render } from 'preact'
 import { Button } from '@nichoth/components/htm/button'
+import {
+    ButtonOutline,
+} from '@nichoth/components/htm/button-outline'
 import { TextInput } from '@nichoth/components/htm/text-input'
 import { createDebug } from '@nichoth/debug'
 import { State } from './state.js'
@@ -32,22 +35,26 @@ export function Example () {
         const els = (ev.target! as HTMLFormElement).elements
         // @ts-expect-error broken upstream. See https://github.com/microsoft/TypeScript/issues/39003
         const name = els.name.value
-        debug('got name', name)
         await State.Create(state, { name })
         // @ts-expect-error broken upstream. See https://github.com/microsoft/TypeScript/issues/39003
         els.name.value = ''
     }
 
+    async function createUser (ev:SubmitEvent) {
+        ev.preventDefault()
+        // @ts-expect-error broken upstream
+        const name = ev.target!.elements.username.value
+        await State.CreateUser(state, { name })
+    }
+
     return html`<div class="content">
-        <h1>A demonstation of levelDB</h1>
+        <h1>Encryption, E2E</h1>
 
         <div>
             <h2>The List</h2>
             ${Object.keys(state.todosSignal.value).length ?
                 html`<ul class="todo-list">
                     ${state.todosSignal.value.map(([key, todo]) => {
-                        debug('the todo item', key, todo)
-
                         const classes = todo.content.completed ?
                             'todo completed' :
                             'todo'
@@ -72,17 +79,40 @@ export function Example () {
             }
         </div>
 
+        ${state.me.value ?
+            html`
+                <div>You are: <strong>${state.me.value.humanName}</strong></div>
+                <h2>Create a new thing to do</h2>
 
-        <h2>Create a new thing to do</h2>
+                <form onSubmit=${handleSubmit}>
+                    <${TextInput}
+                        name=${'name'}
+                        displayName=${'something to do'}
+                        required=${true}
+                    />
+                    <${Button} isSpinning=${false} type=${'submit'}>Submit<//>
+                </form>
 
-        <form onSubmit=${handleSubmit}>
-            <${TextInput}
-                name=${'name'}
-                displayName=${'something to do'}
-                required=${true}
-            />
-            <${Button} isSpinning=${false} type=${'submit'}>Submit<//>
-        </form>
+                <div class="push-pull-controls">
+                    <${ButtonOutline} onClick=${() => State.Push(state)}>push<//>
+                    <${ButtonOutline} onClick=${() => State.Pull(state)}>pull<//>
+                </div>
+            ` :
+            html`<form
+                class="create-user-controls"
+                onSubmit=${createUser}
+            >
+                <${TextInput} name=${'username'} displayName=${'Your username'}
+                    required=${true}
+                />
+
+                <${Button} isSpinning=${false} type=${'submit'}>
+                    Create your identity
+                <//>
+            </form>`
+        }
+
+
     </div>`
 }
 

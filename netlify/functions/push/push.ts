@@ -1,7 +1,11 @@
+import 'dotenv/config'
 import { Handler, HandlerEvent } from '@netlify/functions'
 import faunadb from 'faunadb'
-import { parseHeader, verifyParsed } from '@bicycle-codes/request'
+import { ParsedHeader, parseHeader, verifyParsed } from '@bicycle-codes/request'
 import { createDeviceName } from '@bicycle-codes/identity'
+import { Headers } from '../util.js'
+import type { EncryptedMessage } from '@bicycle-codes/identity'
+// import type { DomainMessage } from '../../../example/state.js'
 
 const { Client } = faunadb
 const q = faunadb.query
@@ -9,6 +13,10 @@ const q = faunadb.query
 const client = new Client({
     secret: process.env.FAUNA_SECRET!
 })
+
+// type EncryptedDomainMessage = DomainMessage & {
+//     content:string  // content is encrypted before it gets to the server
+// }
 
 /**
  * Here we overwrite the state in the database.
@@ -27,34 +35,77 @@ export const handler:Handler = async function handler (ev:HandlerEvent) {
         return { statusCode: 200, headers: Headers() }
     }
 
-    const parsedHeader = parseHeader(ev.headers.Authorization!)
     let sigOk
+    let parsedHeader:ParsedHeader
+
     try {
+        parsedHeader = parseHeader(ev.headers.authorization!)
         sigOk = await verifyParsed(parsedHeader)
     } catch (err) {
+        console.log('errr parsing', err)
+        // console.log('ev headers', ev.headers)
         return { statusCode: 401, body: 'Unauthorized', headers: Headers() }
     }
 
     if (!sigOk) {
-        // in real life, we would need to check that `parsedHeader.author`
-        // is allowed to use our server
+        // in real life, we would check that the incoming DID,
+        // `parsedHeader.author`, is allowed to use our server
+
+        // here we are just checking that the author is who they say
+        // they are
+
+        console.log('not signature ok', parsedHeader)
         return { statusCode: 401, body: 'Unauthorized', headers: Headers() }
     }
 
-    let body
+    let body:EncryptedMessage
     try {
         body = JSON.parse(ev.body!)
     } catch (err) {
         return { statusCode: 400, headers: Headers() }
     }
 
-    const username = createDeviceName(body.author)
+    console.log('**body**', body)
+    const { username } = body.creator
 
+    if (
+        (await createDeviceName(parsedHeader.author)) !==
+        body.creator.username
+    ) {
+        return { statusCode: 401, headers: Headers(), body: 'Unauthorized' }
+    }
+
+    /**
+     * We get all todos as a single chunk, encrypted
+     */
     if (ev.httpMethod === 'POST') {
-        // create a todo item
-        client.query(q.Create(
-            q.Collection('todo', { data: body })
-        ))
+        // upsert the todo list
+        await client.query(
+            q.Let(
+                {
+                    match: q.Match(q.Index('todos_by_username'), username)
+                },
+                q.If(
+                    q.Exists(q.Var('match')),
+
+                    q.Update(
+                        q.Select('ref', q.Get(q.Var('match'))),
+                        { data: body }
+                    ),
+
+                    q.Create(
+                        q.Collection('todo'),
+                        { data: body }
+                    )
+                )
+            )
+        )
+
+        return {
+            statusCode: 200,
+            headers: Headers(),
+            body: JSON.stringify({ ok: 'ok' })
+        }
     }
 
     if (ev.httpMethod === 'DELETE') {
@@ -62,13 +113,4 @@ export const handler:Handler = async function handler (ev:HandlerEvent) {
     }
 
     return { statusCode: 405, headers: Headers() }
-}
-
-function Headers () {
-    return {
-        'Access-Control-Allow-Origin': '*',
-        'Access-Control-Allow-Methods': 'GET, DELETE, POST, OPTIONS',
-        'Access-Control-Allow-Headers':
-            'Content-Type, Access-Control-Allow-Headers, X-Requested-With, Authorization'
-    }
 }
