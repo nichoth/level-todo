@@ -27,7 +27,7 @@ We want ✨*end to end encryption*✨.
 This way we can use traditional methods of sync, like for example a server that stores data in a database. The data we are saving, though, will be just an opaque string. It is only usable if you can decrypt it, and, because this is encrypted end to end, we are the only person who can read it.
 
 ## E2E encryption
-We need a few more modules
+We need a few more modules. This uses several [Bicycle Computing](https://github.com/bicycle-codes/) libraries.
 
 * [@bicycle-codes/identity](https://github.com/bicycle-codes/identity) -- identity
 * [@oddjs/odd](https://github.com/oddsdk/ts-odd) -- save a non-extractable keypair in indexedDB
