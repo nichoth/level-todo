@@ -82,12 +82,5 @@ export const HomeRoute:FunctionComponent<{
             <${ButtonOutline} onClick=${() => State.Push(state)}>push<//>
             <${ButtonOutline} onClick=${() => State.Pull(state)}>pull<//>
         </div>
-
-        <hr />
-
-        <div class="meta-controls">
-            <a href="/link-device">Link a new device to this account</a>
-            <a href="/connect">Add this device to an existing account</a>
-        </div>
     </div>`
 }

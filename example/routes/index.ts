@@ -1,5 +1,6 @@
 import Router from '@nichoth/routes'
 import { LinkDevice } from './link-device.js'
+import { CreateUser } from './create-user.js'
 import { Connect } from './connect.js'
 import { HomeRoute } from './home.js'
 import { Devices } from './devices.js'
@@ -16,6 +17,10 @@ export default function _Router ():ReturnType<Router> {
      */
     router.addRoute('/connect', () => {
         return Connect
+    })
+
+    router.addRoute('/create-user', () => {
+        return CreateUser
     })
 
     router.addRoute('/devices', () => {

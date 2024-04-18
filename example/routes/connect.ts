@@ -66,8 +66,7 @@ export const Connect:FunctionComponent<{
             try {
                 State.LinkSuccess(
                     state,
-                    z.Identity.parse(JSON.parse(ev.data)),
-                    { humanReadableDeviceName, deviceName }
+                    z.Identity.parse(JSON.parse(ev.data))
                 )
             } catch (err) {
                 console.error(err)

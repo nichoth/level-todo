@@ -1,7 +1,5 @@
 import { Signal, signal, batch } from '@preact/signals'
-import { numbers } from '@nichoth/nanoid-dictionary'
 import { PartySocket } from 'partysocket'
-import { customAlphabet } from '@nichoth/nanoid'
 import stringify from 'json-canon'
 // import type { AbstractSublevel } from 'abstract-level'
 import {
@@ -28,7 +26,6 @@ const PUSH_URL = '/api/push'
 const PULL_URL = '/api/pull'
 
 /**
- * This is storing things in plain text in our local indexedDB.
  * They are encrypted before sending to the server.
  */
 
@@ -49,21 +46,6 @@ export interface DomainMessage {
     content:Todo;
 }
 
-// export type EncryptedMessage = {
-//     metadata:Metadata;
-//     content:string|null;  // stringified & encrypted JSON object
-// }
-
-// export type UnencryptedMessage = {
-//     metadata:Metadata|Metadata;
-//     content:object|null;  // `content` gets JSON stringified
-// }
-
-type AppDeviceRecord = {
-    humanReadableDeviceName:string;  // a human-readable name
-    deviceName:string  // the random unique name
-}
-
 /**
  * Create app state. We use a timestamp as key for todo items in levelDB.
  *
@@ -76,7 +58,6 @@ export async function State ():Promise<{
     pendingChange:boolean;
     code:Signal<string|null>;
     linkStatus:Signal<'success'|null>;
-    devices:Signal<Record<string, AppDeviceRecord>|null>;
     _todos;
     _partysocket:InstanceType<typeof PartySocket>|null;
     _nameIndex;
@@ -98,17 +79,18 @@ export async function State ():Promise<{
 
     const request = SignedRequest(ky, crypto, window.localStorage)
 
-    const storedUsername = localStorage.getItem('username')
-    const readableDeviceName = localStorage.getItem('readableDeviceName')
+    const storedHumanName = localStorage.getItem('humanName')
+    const humanReadableDeviceName = localStorage.getItem('humanReadableDeviceName')
 
     let me:Awaited<ReturnType<typeof createID>>|null
-    if (storedUsername) {
+    if (storedHumanName) {
         me = await createID(crypto, {
-            humanName: storedUsername,
-            humanReadableDeviceName: readableDeviceName || 'root'
+            humanName: storedHumanName,
+            humanReadableDeviceName: humanReadableDeviceName || 'root'
         })
     } else {
         me = null
+        onRoute.setRoute('/create-user')
     }
 
     debug('your ID', me!)
@@ -150,7 +132,6 @@ export async function State ():Promise<{
         _request: request,
         _crypto: crypto,
         _partysocket: null,
-        devices: signal(null),
         linkStatus: signal(null),
         code: signal(null),
         pendingChange: false,
@@ -196,13 +177,16 @@ State.GetDB = function (
 
 State.CreateUser = async function (
     state:Awaited<ReturnType<typeof State>>,
-    { name }:{ name:string }
+    {
+        name,
+        humanReadableDeviceName
+    }:{ name:string, humanReadableDeviceName?:string }
 ) {
-    localStorage.setItem('username', name)
+    localStorage.setItem('humanName', name)
 
     state.me.value = await createID(state._crypto, {
         humanName: name,
-        humanReadableDeviceName: 'root'
+        humanReadableDeviceName: humanReadableDeviceName || 'root'
     })
 }
 
@@ -373,13 +357,7 @@ State.AddDevice = function (
     newId:Identity,
 ) {
     state.me.value = newId
-
-    /**
-     * @TODO
-     * Use full (lowercase) alphabet, for less chance of collision?
-     */
-    const PIN = customAlphabet(numbers, 6)
-    state.code.value = ('' + PIN())
+    state.linkStatus.value = 'success'
 }
 
 /**
@@ -388,16 +366,12 @@ State.AddDevice = function (
 State.LinkSuccess = function LinkSuccess (
     state:Awaited<ReturnType<typeof State>>,
     newIdRecord:Identity,
-    newDevice:AppDeviceRecord
 ) {
     // add our human name to localStorage
     localStorage.setItem('username', newIdRecord.humanName)
 
     batch(() => {
         state.me.value = newIdRecord
-        state.devices.value = Object.assign({}, state.devices.value, {
-            [newDevice.deviceName]: newDevice
-        })
         state.linkStatus.value = 'success'
     })
 

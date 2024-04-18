@@ -1,19 +1,22 @@
-import { html } from 'htm/preact'
 import { render } from 'preact'
-import { createDebug } from '@nichoth/debug'
+import { html } from 'htm/preact'
+import { Toaster } from '@nichoth/components/htm/toast'
+import Debug from '@nichoth/debug'
 import { State } from './state.js'
 import Router from './routes/index.js'
+import '@nichoth/components/toast.css'
+import '@nichoth/components/close-btn.css'
 import '@nichoth/components/button-outline.css'
 import '@nichoth/components/button.css'
 import '@nichoth/components/text-input.css'
 import './style.css'
 
 const state = await State()
-const debug = createDebug()
+const debug = Debug()
 const router = Router()
 
 export function LevelExample () {
-    debug('rendering example...')
+    debug('rendering example...', state)
 
     const match = router.match(state.route.value)
 
@@ -22,6 +25,11 @@ export function LevelExample () {
         function () {
             return html`<h1>404</h1>`
         }
+
+    function closeToast (ev:MouseEvent) {
+        ev.preventDefault()
+        state.linkStatus.value = null
+    }
 
     return html`<header>
         <nav>
@@ -44,6 +52,20 @@ export function LevelExample () {
         }
 
         <${ChildNode} state=${state} />
+
+        <hr />
+
+        <div class="meta-controls">
+            <a href="/link-device">Link a new device to this account</a>
+            <a href="/connect">Add this device to an existing account</a>
+        </div>
+
+        ${state.linkStatus.value ?
+            html`<${Toaster} type="success" onClose=${closeToast}>
+                Success adding device
+            <//>` :
+            null
+        }
     </div>`
 }
 
