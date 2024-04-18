@@ -22,7 +22,7 @@ Why would that matter? At the most innocuous, this server would read our lists, 
 
 Somehow our simple todo list has turned into an investigation of personal privacy on the internet. That's what we'll look at today. How do we get synchronization between multiple devices while still keeping things private?
 
-We want ✨*end to end encryption*✨.
+We want ✨__end to end encryption__✨.
 
 This way we can use traditional methods of sync, like for example a server that stores data in a database. The data we are saving, though, will be just an opaque string. It is only usable if you can decrypt it, and, because this is encrypted end to end, we are the only person who can read it.
 
