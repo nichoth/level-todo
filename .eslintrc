@@ -13,6 +13,7 @@
   ],
   "rules": {
     "@typescript-eslint/no-explicit-any": "off",
+    "dot-notation": "off",
     "operator-linebreak": ["off"],
     "multiline-ternary": "off",
     "no-multiple-empty-lines": [

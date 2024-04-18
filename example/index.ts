@@ -1,84 +1,72 @@
-import { html } from 'htm/preact'
 import { render } from 'preact'
-import { Button } from '@nichoth/components/htm/button'
-import { TextInput } from '@nichoth/components/htm/text-input'
-import { createDebug } from '@nichoth/debug'
+import { html } from 'htm/preact'
+import { Toaster } from '@nichoth/components/htm/toast'
+import Debug from '@nichoth/debug'
 import { State } from './state.js'
+import Router from './routes/index.js'
+import '@nichoth/components/toast.css'
+import '@nichoth/components/close-btn.css'
 import '@nichoth/components/button-outline.css'
 import '@nichoth/components/button.css'
 import '@nichoth/components/text-input.css'
 import './style.css'
 
 const state = await State()
-const debug = createDebug()
+const debug = Debug()
+const router = Router()
 
-export function Example () {
-    debug('rendering example...')
+export function LevelExample () {
+    debug('rendering example...', state)
 
-    function check (ev) {
-        const el = ev.target
-        const isComplete = el.checked
-        const { id }:{ id:string } = el.dataset
-        if (isComplete) {
-            return State.Complete(state, id)
+    const match = router.match(state.route.value)
+
+    const ChildNode = match ?
+        match.action(match, state.route) :
+        function () {
+            return html`<h1>404</h1>`
         }
 
-        // not complete
-        State.Uncomplete(state, id)
-    }
-
-    async function handleSubmit (ev:SubmitEvent) {
+    function closeToast (ev:MouseEvent) {
         ev.preventDefault()
-        const els = (ev.target! as HTMLFormElement).elements
-        // @ts-expect-error broken upstream. See https://github.com/microsoft/TypeScript/issues/39003
-        const name = els.name.value
-        debug('got name', name)
-        await State.Create(state, { name })
-        // @ts-expect-error broken upstream. See https://github.com/microsoft/TypeScript/issues/39003
-        els.name.value = ''
+        state.linkStatus.value = null
     }
 
-    return html`<div class="content">
-        <h1>A demonstation of levelDB</h1>
+    return html`<header>
+        <nav>
+            <ul class="nav">
+                <li><a href="/">home</a></li>
+                <li><a href="/devices">devices</a></li>
+            </ul>
+        </nav>
+    </header>
 
-        <div>
-            <h2>The List</h2>
-            ${Object.keys(state.todosSignal.value).length ?
-                html`<ul class="todo-list">
-                    ${state.todosSignal.value.map(([key, todo]) => {
-                        const classes = todo.completed ? 'todo completed' : 'todo'
+    <div class="content">
+        <h1>Encryption, E2E</h1>
 
-                        return html`<li key=${key} class=${classes}>
-                            <input class="toggle" checked=${todo.completed}
-                                type="checkbox"
-                                name="done-status"
-                                id="${key}"
-                                data-id=${key}
-                                onChange=${check}
-                            />
+        ${state.me.value ?
+            html`
+                <div>You are: <strong>${state.me.value.humanName}</strong></div>
+                <hr />
+            ` :
+            null
+        }
 
-                            <label>
-                                ${todo.name}
-                            </label>
-                        </li>`
-                    })}
-                </ul>` :
-                html`<em class="empty-list">none</em>`
-            }
+        <${ChildNode} state=${state} />
+
+        <hr />
+
+        <div class="meta-controls">
+            <a href="/link-device">Link a new device to this account</a>
+            <a href="/connect">Add this device to an existing account</a>
         </div>
 
-
-        <h2>Create a new thing to do</h2>
-
-        <form onSubmit=${handleSubmit}>
-            <${TextInput}
-                name=${'name'}
-                displayName=${'something to do'}
-                required=${true}
-            />
-            <${Button} isSpinning=${false} type=${'submit'}>Submit<//>
-        </form>
+        ${state.linkStatus.value ?
+            html`<${Toaster} type="success" onClose=${closeToast}>
+                Success adding device
+            <//>` :
+            null
+        }
     </div>`
 }
 
-render(html`<${Example} />`, document.getElementById('root')!)
+render(html`<${LevelExample} />`, document.getElementById('root')!)

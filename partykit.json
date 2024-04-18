@@ -1,0 +1,5 @@
+{
+  "name": "level-todo-party",
+  "main": "example/server/index.ts",
+  "compatibilityDate": "2024-04-17"
+}
