@@ -35,7 +35,9 @@ We need a few more modules
 
 I am using a database with [Fauna DB](https://faunadb.com/), and a websocket via [Patykit](https://partykit.io/) also.
 
-## The usecase
+## The implementation
+
+![Screenshot of the app](image.png)
 
 The app flow is designed like this:
 
