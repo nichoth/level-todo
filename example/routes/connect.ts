@@ -1,5 +1,7 @@
 import { html } from 'htm/preact'
 import { FunctionComponent } from 'preact'
+import * as z from '@bicycle-codes/identity/z'
+import { createDeviceName, toString } from '@bicycle-codes/identity'
 import { useComputed, useSignal } from '@preact/signals'
 import { PartySocket } from 'partysocket'
 import { writeKeyToDid } from '@ssc-half-light/util'
@@ -29,7 +31,7 @@ export const Connect:FunctionComponent<{
 
         const pin = (ev.target as HTMLFormElement).elements['pin'].value
         const nameEl = (ev.target as HTMLFormElement).elements['device-name']
-        const deviceName = nameEl.value
+        const humanReadableDeviceName = nameEl.value
 
         const serverAddress = (import.meta.env.DEV ?
             'localhost:1999' :
@@ -47,7 +49,7 @@ export const Connect:FunctionComponent<{
         })
 
         const newDid = await writeKeyToDid(state._crypto)
-        const name = await createDeviceName(newDid)
+        const deviceName = await createDeviceName(newDid)
 
         /**
          * Get a message with the new ID record,
@@ -57,10 +59,10 @@ export const Connect:FunctionComponent<{
             // we should only get 1 message, the new identity
             //   (the ID including this device)
             try {
-                LinkSuccess(
+                State.LinkSuccess(
                     state,
                     z.Identity.parse(JSON.parse(ev.data)),
-                    { humanName: deviceName, name }
+                    { humanReadableDeviceName, deviceName }
                 )
             } catch (err) {
                 console.error(err)
@@ -129,7 +131,7 @@ export const Connect:FunctionComponent<{
                 </label>
             </div>
 
-            <p>Enter the PIN here from the parent device</p>
+            <p>Enter the PIN from the parent device</p>
             <div class="pin-input">
                 <input name="pin" className="pin" type="number"
                     minlength=${6}

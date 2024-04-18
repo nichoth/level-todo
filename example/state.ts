@@ -9,7 +9,6 @@ import {
     Identity,
     encryptTo,
     decryptMsg,
-    addDevice
 } from '@bicycle-codes/identity'
 import { program as createProgram } from '@oddjs/odd'
 import Route from 'route-event'
@@ -28,20 +27,10 @@ const debug = Debug()
 const PUSH_URL = '/api/push'
 const PULL_URL = '/api/pull'
 
-const serverAddress = (import.meta.env.DEV ?
-    'localhost:1999' :
-    'identity-party.nichoth.partykit.dev')
-
 /**
  * This is storing things in plain text in our local indexedDB.
  * They are encrypted before sending to the server.
  */
-
-type Message = {
-    newDid:`did:key:z${string}`;
-    deviceName:string;
-    exchangeKey:string;
-}
 
 export type Todo = {
     completed:boolean;
@@ -70,6 +59,11 @@ export interface DomainMessage {
 //     content:object|null;  // `content` gets JSON stringified
 // }
 
+type AppDeviceRecord = {
+    humanReadableDeviceName:string;  // a human-readable name
+    deviceName:string  // the random unique name
+}
+
 /**
  * Create app state. We use a timestamp as key for todo items in levelDB.
  *
@@ -81,9 +75,10 @@ export async function State ():Promise<{
     me:Signal<Identity|null>;
     pendingChange:boolean;
     code:Signal<string|null>;
-    linkStatus:Signal<'success'|null>
-    _todos
-    _partysocket:InstanceType<typeof PartySocket>|null
+    linkStatus:Signal<'success'|null>;
+    devices:Signal<Record<string, AppDeviceRecord>|null>;
+    _todos;
+    _partysocket:InstanceType<typeof PartySocket>|null;
     _nameIndex;
     _db:InstanceType<typeof BrowserLevel<charwise, DomainMessage>>;
     _request:ReturnType<typeof SignedRequest>
@@ -153,6 +148,7 @@ export async function State ():Promise<{
         _request: request,
         _crypto: crypto,
         _partysocket: null,
+        devices: signal(null),
         linkStatus: signal(null),
         code: signal(null),
         pendingChange: false,
@@ -366,12 +362,19 @@ State.Pull = async function Pull (state:Awaited<ReturnType<typeof State>>) {
 /**
  * Add a new device to this account.
  *
- * This should be called from the route `link-device`.
+ * This should be called from the route `link-device`
+ * (from the existing device).
  */
 State.AddDevice = function (
     state:Awaited<ReturnType<typeof State>>,
-    newId:Identity
+    newId:Identity,
+    newDevice:AppDeviceRecord
 ) {
+    state.me.value = newId
+    state.devices.value = Object.assign({}, state.devices.value, {
+        [newDevice.deviceName]: newDevice
+    })
+
     /**
      * @TODO
      * Use full (lowercase) alphabet, for less chance of collision?
@@ -381,14 +384,18 @@ State.AddDevice = function (
 }
 
 /**
- * Call this from a new device, to say that it is part of an identity
+ * Call this from a new device, after linking it to an existing device
  */
-export function LinkSuccess (
+State.LinkSuccess = function LinkSuccess (
     state:Awaited<ReturnType<typeof State>>,
     newIdRecord:Identity,
+    newDevice:AppDeviceRecord
 ) {
     batch(() => {
         state.me.value = newIdRecord
+        state.devices.value = Object.assign({}, state.devices.value, {
+            [newDevice.deviceName]: newDevice
+        })
         state.linkStatus.value = 'success'
     })
 

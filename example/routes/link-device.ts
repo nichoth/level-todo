@@ -6,10 +6,10 @@ import { PartySocket } from 'partysocket'
 import { customAlphabet } from '@nichoth/nanoid'
 import { numbers } from '@nichoth/nanoid-dictionary'
 import { State } from '../state.js'
-import { addDevice, createDeviceName } from '@bicycle-codes/identity'
+import { addDevice } from '@bicycle-codes/identity'
 import '@nichoth/components/text-input.css'
 
-const serverAddress = (import.meta.env.DEV ?
+const PARTY_URL = (import.meta.env.DEV ?
     'localhost:1999' :
     'identity-party.nichoth.partykit.dev')
 
@@ -43,7 +43,7 @@ export const LinkDevice:FunctionComponent<{
          * @TODO -- use a real token
          */
         const partySocket = new PartySocket({
-            host: serverAddress,
+            host: PARTY_URL,
             room: code.value,
             // id: state.me.value?.rootDID,
             query: {
@@ -78,11 +78,9 @@ export const LinkDevice:FunctionComponent<{
                 exchangeKey
             )
 
-            const name = await createDeviceName(newDid)
-
             State.AddDevice(state, newIdentity, {
-                humanName: deviceName,
-                name
+                humanReadableDeviceName: deviceName,
+                deviceName
             })
 
             partySocket.send(JSON.stringify(newIdentity))

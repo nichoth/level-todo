@@ -1,6 +1,6 @@
-// import { html } from 'htm/preact'
-import { Connect } from './connect.js'
 import Router from '@nichoth/routes'
+import { LinkDevice } from './link-device.js'
+import { Connect } from './connect.js'
 import { HomeRoute } from './home.js'
 
 export default function _Router ():ReturnType<Router> {
@@ -10,6 +10,9 @@ export default function _Router ():ReturnType<Router> {
         return HomeRoute
     })
 
+    /**
+     * This route is for new devices.
+     */
     router.addRoute('/connect', () => {
         return Connect
     })
