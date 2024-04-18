@@ -49,7 +49,7 @@ The app flow is designed like this:
 
 ## State synchronization
 
-Note that __this *not* a demonstration of CRDTs or any kind of state reconciliation.__ The `push` and `pull` buttons will simply overwrite the remote or local state.
+Note that __this *not* a demonstration of CRDTs__ or any kind of state reconciliation. The `push` and `pull` buttons will simply overwrite the remote or local state.
 
 This can work alright if you are only dealing with updates from a single user. We can assume that a single user would be mindful about which device is most up to date, and would push and pull accordingly.
 
