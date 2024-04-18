@@ -54,3 +54,17 @@ This can work alright if you are only dealing with updates from a single user. W
 ## authentication
 
 Serverside, we handle auth using HTTP headers, via the [request module](https://github.com/bicycle-codes/request).
+
+## develop
+
+Start a local server with `vite`, a local partykit websocket server, and serve the lambda functions locally. (A complete environment can run locally.)
+
+```sh
+npm start
+```
+
+You need to add an environment variable for the database. In the root directory, create a file `.env`:
+
+```sh
+FAUNA_SECRET="abc123"
+```
