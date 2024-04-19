@@ -1,5 +1,17 @@
 # notes
 
+## server-side
+
+I like that the server doesn't need to do very much. It shuffles encrypted strings between clients and the database. 
+
+Verifying requests actually is a kind of substantial task though. It would be nice if I could find a way to factor out that part.
+
+We need to verify the identity of the requester from just a public key. Each username has many devices, each with its own public key. So we need to map public keys to identities. A fairly simple task, but it's something I didn't get to, in the interest of keeping the server simpler. Instead every request contains a signed certificate, from the "root" device  to the active device. That way we are able to verify, at request time,  that a given public key is related to a given root ID. 
+
+
+--------------------------------------------------------------------
+
+
 ## indexedDB
 
 ### secondary indexes
