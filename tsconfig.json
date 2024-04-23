@@ -1,9 +1,9 @@
 {
   "compilerOptions": {
     "listFiles": true,
-    "module": "NodeNext",
+    "module": "ES2022",
     "target": "ES2022",
-    "moduleResolution": "nodenext",
+    "moduleResolution": "Bundler",
     "esModuleInterop": false,
     "types": ["vite/client"],
     "lib": ["ES2022", "DOM", "WebWorker"],

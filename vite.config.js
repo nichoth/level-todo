@@ -19,6 +19,9 @@ export default defineConfig({
     ],
     // https://github.com/vitejs/vite/issues/8644#issuecomment-1159308803
     esbuild: {
+        supported: {
+            'top-level-await': true
+        },
         logOverride: { 'this-is-undefined-in-esm': 'silent' }
     },
     publicDir: '_public',
@@ -43,11 +46,9 @@ export default defineConfig({
     },
     build: {
         minify: false,
+        target: 'esnext',
         outDir: '../public',
         emptyOutDir: true,
         sourcemap: 'inline',
-        // rollupOptions: {
-        //     external: ['@socketsupply/tonic']
-        // }
     }
 })
