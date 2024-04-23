@@ -14,7 +14,7 @@ There is no need to save this to a server. It can stay just in our own web brows
 
 And what about backup? We want this data to continue existing even in the event that we lose our device(s). Hmm... it's not so simple anymore. We need multi-device sync, and backup copies.
 
-That brings *privacy* into the picture. We don't want anyone else to be able to our todo list, because no one else needs to read it.
+That brings *privacy* into the picture. We don't want anyone else to be able to see our todo list, because no one else needs to read it.
 
 There are varying shades of privacy. This could be private because we sign in to a server, and the server only serves *us* the data. But that means that the server could still read the list.
 
