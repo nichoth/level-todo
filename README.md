@@ -37,9 +37,9 @@ I am using a database with [Fauna DB](https://faunadb.com/), and a websocket via
 
 ## The implementation
 
-![Screenshot of the app](image.png)
-
 See [the example folder](./example/).
+
+![Screenshot of the app](image.png)
 
 The app flow is designed like this:
 
