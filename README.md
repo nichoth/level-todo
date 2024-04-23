@@ -39,6 +39,8 @@ I am using a database with [Fauna DB](https://faunadb.com/), and a websocket via
 
 ![Screenshot of the app](image.png)
 
+See [the example folder](./example/).
+
 The app flow is designed like this:
 
 1. You open the app for the first time. The app prompts you to create a new identity. You create an identity. At this point you can save data, and it will be encrypted and backed up on the server.
