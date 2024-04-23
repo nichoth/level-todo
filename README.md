@@ -37,7 +37,7 @@ I am using a database with [Fauna DB](https://faunadb.com/), and a websocket via
 
 ## The implementation
 
-See [the example folder](./example/).
+See code in [the example folder](./example/).
 
 ![Screenshot of the app](image.png)
 
