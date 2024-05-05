@@ -18,7 +18,7 @@ That brings *privacy* into the picture. We don't want anyone else to be able to 
 
 There are varying shades of privacy. This could be private because we sign in to a server, and the server only serves *us* the data. But that means that the server could still read the list.
 
-Why would that matter? At the most innocuous, this server would read our lists, and use that info to sell advertisements to us. Maybe that's not so bad. In a less innocuous scenario, this server operator might read a *todo* item about our reproductive rights, or soomething political, for example, and now we are in a morass of legal issues.
+Why would that matter? At the most innocuous, this server would read our lists, and use that info to sell advertisements to us. Maybe that's not so bad. In a less innocuous scenario, this server operator might read a *todo* item about our reproductive rights, or something political, for example, and now we are in a morass of legal issues.
 
 Somehow our simple todo list has turned into an investigation of personal privacy on the internet. That's what we'll look at today. How do we get synchronization between multiple devices while still keeping things private?
 
