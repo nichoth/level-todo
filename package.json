@@ -45,7 +45,7 @@
     "level-web-stream": "^1.1.0",
     "monotonic-timestamp": "^0.0.9",
     "netlify-cli": "^17.22.1",
-    "partykit": "^0.0.104",
+    "partykit": "^0.0.105",
     "partysocket": "^1.0.1",
     "preact": "^10.20.0",
     "route-event": "^4.2.20",
