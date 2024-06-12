@@ -48,7 +48,7 @@
     "partykit": "^0.0.105",
     "partysocket": "^1.0.1",
     "preact": "^10.20.0",
-    "route-event": "^4.2.20",
+    "route-event": "^5.2.2",
     "uint8arrays": "^5.0.3"
   },
   "devDependencies": {
